@@ -1,0 +1,6 @@
+started=2026-08-10T10:52:34+02:00
+cwd=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main
+command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe -m pipeline.lear.run_lear exaa-naive
+Saved: EXAA-naive forecast | config -> \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\exaa_naive
+finished=2026-08-10T10:53:08+02:00
+status=success

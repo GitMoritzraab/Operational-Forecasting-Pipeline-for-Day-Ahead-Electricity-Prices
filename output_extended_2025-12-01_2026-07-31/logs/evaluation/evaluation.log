@@ -1,0 +1,105 @@
+started=2026-09-04T15:05:49+02:00
+cwd=C:\Users\mg8285\Documents\PythonTestGround\DA_Price_Forecasting_Pipeline_DE_LU-main
+command=C:\Users\mg8285\Documents\PythonTestGround\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe -m evaluation.run_evaluation
+All validation checks passed.
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d56\c1\fundamental\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d56\c1\exaa\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d56\c5\fundamental\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d56\c5\exaa\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d56\c25\fundamental\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d56\c25\exaa\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d112\c1\fundamental\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d112\c1\exaa\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d112\c5\fundamental\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d112\c5\exaa\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d112\c25\fundamental\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d112\c25\exaa\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d364\c1\fundamental\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d364\c1\exaa\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d364\c5\fundamental\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d364\c5\exaa\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d364\c25\fundamental\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\era5\d364\c25\exaa\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\dwd\d56\c1\fundamental\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\dwd\d56\c1\exaa\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\dwd\d56\c5\fundamental\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\dwd\d56\c5\exaa\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\dwd\d56\c25\fundamental\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\dwd\d56\c25\exaa\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\exaa_only\d56\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\exaa_only\d112\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\exaa_only\d364\metrics.csv
+Saved evaluation metrics: \\iipsrv-file1.iip.kit.edu\synergie\Group_EDM\Moritz\Data\Forecast\Forecast_results\lear_op_results\exaa_naive\metrics.csv
+
+Point forecast metrics
+                                 MAE       RMSE      Bias
+era5_d364_c1_exaa          10.170860  18.708867  0.282875
+exaa_only_d364             10.182365  18.760450  0.305360
+era5_d364_c25_exaa         10.204826  18.664693 -0.009508
+era5_d364_c5_exaa          10.223782  18.824575  0.122169
+exaa_only_d112             10.231734  18.746230  0.182843
+era5_d112_c1_exaa          10.430346  19.389439 -0.182641
+era5_d112_c5_exaa          10.494188  19.518384 -0.249799
+era5_d112_c25_exaa         10.539960  19.782305 -0.573397
+exaa_only_d56              10.864758  19.969121  0.200456
+exaa_naive                 11.095252  21.479883  0.468710
+era5_d56_c1_exaa           11.239162  20.964198 -0.121684
+era5_d56_c5_exaa           11.333314  20.836721 -0.144690
+dwd_d56_c1_exaa            11.366039  21.443138 -0.229090
+dwd_d56_c5_exaa            11.446868  21.161427 -0.316910
+era5_d56_c25_exaa          11.743687  21.835365 -0.445855
+dwd_d56_c25_exaa           11.814024  21.821060 -0.467204
+era5_d364_c5_fundamental   15.880030  28.331763 -1.184672
+era5_d364_c25_fundamental  16.219803  28.242319 -1.864959
+era5_d364_c1_fundamental   16.683368  29.278487 -0.476976
+dwd_d56_c5_fundamental     17.687844  31.074974 -1.501198
+era5_d112_c5_fundamental   17.736449  38.636990 -2.002056
+era5_d56_c1_fundamental    17.811133  31.525354 -0.274668
+dwd_d56_c1_fundamental     17.956220  32.164547 -1.086172
+era5_d56_c5_fundamental    18.055299  32.256445 -1.189009
+era5_d112_c1_fundamental   18.322040  33.712101 -0.978920
+era5_d112_c25_fundamental  18.355140  36.198798 -2.483876
+era5_d56_c25_fundamental   18.849540  36.502916 -2.229749
+dwd_d56_c25_fundamental    18.872559  34.329998 -2.046496
+
+Probabilistic median MAE
+            MAE (Median)
+exaa_only       9.873901
+exaa_ERA5      10.141816
+exaa_naive     11.043189
+exaa_DWD       11.248976
+fund_ERA5      15.495482
+fund_DWD       17.043006
+
+Aggregated Pinball Score
+                 APS
+exaa_only   3.848778
+exaa_ERA5   3.942798
+exaa_naive  4.333181
+exaa_DWD    4.370745
+fund_ERA5   5.872226
+fund_DWD    6.577070
+
+PI_10_90
+            Empirical Coverage  Nominal Coverage  Kupiec MTUs passed
+fund_DWD              0.794064               0.8                26.0
+fund_ERA5             0.788354               0.8                21.0
+exaa_naive            0.798597               0.8                45.0
+exaa_DWD              0.799032               0.8                43.0
+exaa_ERA5             0.798030               0.8                37.0
+exaa_only             0.798422               0.8                41.0
+
+PI_25_75
+            Empirical Coverage  Nominal Coverage  Kupiec MTUs passed
+fund_DWD              0.509632               0.5                24.0
+fund_ERA5             0.491457               0.5                24.0
+exaa_naive            0.516693               0.5                49.0
+exaa_DWD              0.521836               0.5                53.0
+exaa_ERA5             0.512683               0.5                45.0
+exaa_only             0.518218               0.5                50.0
+Saved: C:\Users\mg8285\Documents\PythonTestGround\DA_Price_Forecasting_Pipeline_DE_LU-main\output_extended_2025-12-01_2026-07-31\gw_test_mae_fundamental.pdf
+Saved: C:\Users\mg8285\Documents\PythonTestGround\DA_Price_Forecasting_Pipeline_DE_LU-main\output_extended_2025-12-01_2026-07-31\gw_test_mae_exaa.pdf
+Saved: C:\Users\mg8285\Documents\PythonTestGround\DA_Price_Forecasting_Pipeline_DE_LU-main\output_extended_2025-12-01_2026-07-31\gw_test_mae_all.pdf
+Saved: C:\Users\mg8285\Documents\PythonTestGround\DA_Price_Forecasting_Pipeline_DE_LU-main\output_extended_2025-12-01_2026-07-31\gw_test_aps.pdf
+finished=2026-09-04T15:07:02+02:00
+status=success

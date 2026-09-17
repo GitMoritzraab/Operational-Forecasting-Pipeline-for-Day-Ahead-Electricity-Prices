@@ -1,0 +1,21 @@
+{
+  "mode": "daily_operational",
+  "configuration": "exaa_only",
+  "train_days": 60,
+  "mtu_specific": false,
+  "quantiles": [
+    0.025,
+    0.25,
+    0.5,
+    0.75,
+    0.975
+  ],
+  "import_paths": [
+    "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\results\\operational\\lear_op_results\\exaa_only\\d56\\forecast.csv",
+    "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\results\\operational\\lear_op_results\\exaa_only\\d112\\forecast.csv",
+    "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\results\\operational\\lear_op_results\\exaa_only\\d364\\forecast.csv"
+  ],
+  "forecast_schema_version": 2,
+  "forecast_index": "delivery_date_mtu",
+  "mtus_per_delivery_day": 96
+}

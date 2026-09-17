@@ -1,0 +1,33 @@
+month,model,label,mae,observations,delivery_days
+2025-12,dwd_d56_c5_fundamental,"Fundamental, ICON-D2 ($C=5$, $D_{\mathrm{LEAR}}=56$)",10.970306636237577,2976,31
+2026-01,dwd_d56_c5_fundamental,"Fundamental, ICON-D2 ($C=5$, $D_{\mathrm{LEAR}}=56$)",15.533459461326181,2880,30
+2026-02,dwd_d56_c5_fundamental,"Fundamental, ICON-D2 ($C=5$, $D_{\mathrm{LEAR}}=56$)",13.486593444800912,2592,27
+2026-03,dwd_d56_c5_fundamental,"Fundamental, ICON-D2 ($C=5$, $D_{\mathrm{LEAR}}=56$)",22.302208969173172,2976,31
+2026-04,dwd_d56_c5_fundamental,"Fundamental, ICON-D2 ($C=5$, $D_{\mathrm{LEAR}}=56$)",21.317060660739422,2880,30
+2026-05,dwd_d56_c5_fundamental,"Fundamental, ICON-D2 ($C=5$, $D_{\mathrm{LEAR}}=56$)",16.739636826462405,2976,31
+2026-06,dwd_d56_c5_fundamental,"Fundamental, ICON-D2 ($C=5$, $D_{\mathrm{LEAR}}=56$)",22.90698063613507,2688,28
+2026-07,dwd_d56_c5_fundamental,"Fundamental, ICON-D2 ($C=5$, $D_{\mathrm{LEAR}}=56$)",18.257062106658214,2976,31
+2025-12,era5_d364_c5_fundamental,"Fundamental, ERA5 ($C=5$, $D_{\mathrm{LEAR}}=364$)",11.655058771501647,2976,31
+2026-01,era5_d364_c5_fundamental,"Fundamental, ERA5 ($C=5$, $D_{\mathrm{LEAR}}=364$)",13.03813091219691,2880,30
+2026-02,era5_d364_c5_fundamental,"Fundamental, ERA5 ($C=5$, $D_{\mathrm{LEAR}}=364$)",10.16631718211958,2592,27
+2026-03,era5_d364_c5_fundamental,"Fundamental, ERA5 ($C=5$, $D_{\mathrm{LEAR}}=364$)",18.046213307413023,2976,31
+2026-04,era5_d364_c5_fundamental,"Fundamental, ERA5 ($C=5$, $D_{\mathrm{LEAR}}=364$)",20.164463886018332,2880,30
+2026-05,era5_d364_c5_fundamental,"Fundamental, ERA5 ($C=5$, $D_{\mathrm{LEAR}}=364$)",16.38428175700918,2976,31
+2026-06,era5_d364_c5_fundamental,"Fundamental, ERA5 ($C=5$, $D_{\mathrm{LEAR}}=364$)",20.953788866804636,2688,28
+2026-07,era5_d364_c5_fundamental,"Fundamental, ERA5 ($C=5$, $D_{\mathrm{LEAR}}=364$)",16.432277621673006,2976,31
+2025-12,era5_d364_c1_exaa,"EXAA-Enriched, ERA5 ($C=1$, $D_{\mathrm{LEAR}}=364$)",7.751688121538649,2976,31
+2026-01,era5_d364_c1_exaa,"EXAA-Enriched, ERA5 ($C=1$, $D_{\mathrm{LEAR}}=364$)",8.581718605410504,2880,30
+2026-02,era5_d364_c1_exaa,"EXAA-Enriched, ERA5 ($C=1$, $D_{\mathrm{LEAR}}=364$)",5.621575639722117,2592,27
+2026-03,era5_d364_c1_exaa,"EXAA-Enriched, ERA5 ($C=1$, $D_{\mathrm{LEAR}}=364$)",12.167348868473702,2976,31
+2026-04,era5_d364_c1_exaa,"EXAA-Enriched, ERA5 ($C=1$, $D_{\mathrm{LEAR}}=364$)",13.404609737275743,2880,30
+2026-05,era5_d364_c1_exaa,"EXAA-Enriched, ERA5 ($C=1$, $D_{\mathrm{LEAR}}=364$)",11.963716679669648,2976,31
+2026-06,era5_d364_c1_exaa,"EXAA-Enriched, ERA5 ($C=1$, $D_{\mathrm{LEAR}}=364$)",11.95307681752911,2688,28
+2026-07,era5_d364_c1_exaa,"EXAA-Enriched, ERA5 ($C=1$, $D_{\mathrm{LEAR}}=364$)",9.56166491125591,2976,31
+2025-12,exaa_only_d364,EXAA-Only ($D_{\mathrm{LEAR}}=364$),7.730350804889106,2976,31
+2026-01,exaa_only_d364,EXAA-Only ($D_{\mathrm{LEAR}}=364$),8.16143973224854,2880,30
+2026-02,exaa_only_d364,EXAA-Only ($D_{\mathrm{LEAR}}=364$),5.561047987757308,2592,27
+2026-03,exaa_only_d364,EXAA-Only ($D_{\mathrm{LEAR}}=364$),12.29503431987785,2976,31
+2026-04,exaa_only_d364,EXAA-Only ($D_{\mathrm{LEAR}}=364$),13.738039486256623,2880,30
+2026-05,exaa_only_d364,EXAA-Only ($D_{\mathrm{LEAR}}=364$),12.09110161592898,2976,31
+2026-06,exaa_only_d364,EXAA-Only ($D_{\mathrm{LEAR}}=364$),11.68459174538376,2688,28
+2026-07,exaa_only_d364,EXAA-Only ($D_{\mathrm{LEAR}}=364$),9.795898114609441,2976,31

@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+/forecast/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Data: track only clustering, processed ICON, and shapefile assets
+/data/*
+!/data/clustering/
+!/data/clustering/**
+!/data/icon/
+!/data/icon/**
+!/data/shapefile/
+!/data/shapefile/**
+
+# Local operational automation and runtime locks
+/update_github.py
+/output/**/*.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+.agents/
+.codex/  
+
+# Credentials
+*.env
+.env

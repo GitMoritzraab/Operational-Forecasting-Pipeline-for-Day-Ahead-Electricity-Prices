@@ -1,0 +1,7 @@
+started=2026-09-04T15:07:52+02:00
+cwd=C:\Users\mg8285\Documents\PythonTestGround\DA_Price_Forecasting_Pipeline_DE_LU-main
+command=C:\Users\mg8285\Documents\PythonTestGround\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe C:\Users\mg8285\Documents\PythonTestGround\DA_Price_Forecasting_Pipeline_DE_LU-main\visualization\plot_anc_bar.py
+Saved: anc_fundamental.pdf
+Saved: anc_exaa.pdf
+finished=2026-09-04T15:07:56+02:00
+status=success

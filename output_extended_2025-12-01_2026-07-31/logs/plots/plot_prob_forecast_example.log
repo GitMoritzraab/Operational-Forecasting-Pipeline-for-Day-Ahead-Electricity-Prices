@@ -1,0 +1,6 @@
+started=2026-09-04T15:07:32+02:00
+cwd=C:\Users\mg8285\Documents\PythonTestGround\DA_Price_Forecasting_Pipeline_DE_LU-main
+command=C:\Users\mg8285\Documents\PythonTestGround\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe C:\Users\mg8285\Documents\PythonTestGround\DA_Price_Forecasting_Pipeline_DE_LU-main\visualization\plot_prob_forecast_example.py
+Saved: C:\Users\mg8285\Documents\PythonTestGround\DA_Price_Forecasting_Pipeline_DE_LU-main\output_extended_2025-12-01_2026-07-31\plot_prob_forecast_example.pdf
+finished=2026-09-04T15:07:46+02:00
+status=success

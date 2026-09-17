@@ -1,0 +1,219 @@
+started_at=2026-09-16T14:37:43.571773+02:00
+command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline --no-submit --target-date 2026-09-17
+Target: 2026-09-17T00:00:00+02:00
+Submitted point model: dwd_d56_c5_fundamental
+SQRA configuration: dwd_fundamental
+Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
+Point runs: dwd_d56_c1_fundamental, dwd_d56_c5_fundamental, dwd_d56_c25_fundamental
+DWD histories ready for delivery 2026-09-17: C=1, C=5, C=25
+Updating prices_da.csv: 2026-09-13 through 2026-09-13
+WARNING: prices_da.csv remains incomplete for 96 timestamp(s) on delivery day(s): 2026-09-13
+Point forecast dwd_d56_c1_fundamental: 2026-07-19..2026-09-17
+dwd_d56_c1_fundamental: incomplete feature days detected=3; operational price policy will be applied
+  2026-07-19  LARS  33.2s
+  2026-07-20  LARS  32.7s
+  2026-07-21  LARS  33.2s
+  2026-07-22  LARS  33.2s
+  2026-07-23  LARS  32.6s
+  2026-07-24  LARS  32.2s
+  2026-07-25  LARS  32.2s
+  2026-07-26  LARS  32.5s
+  2026-07-27  LARS  32.3s
+  2026-07-28  LARS  32.0s
+  2026-07-29  LARS  31.6s
+  2026-07-30  LARS  31.5s
+  2026-07-31  LARS  32.0s
+  2026-08-01  LARS  32.2s
+  2026-08-02  LARS  32.6s
+  2026-08-03  LARS  32.4s
+  2026-08-04  LARS  32.6s
+  2026-08-05  LARS  32.1s
+  2026-08-06  LARS  32.3s
+  2026-08-07  LARS  32.0s
+  2026-08-08  LARS  32.2s
+  2026-08-09  LARS  32.0s
+  2026-08-10  LARS  32.4s
+  2026-08-11  LARS  32.5s
+  2026-08-12  LARS  31.9s
+  2026-08-13  LARS  32.3s
+  2026-08-14  LARS  31.9s
+  2026-08-15  LARS  32.9s
+  2026-08-16  LARS  33.0s
+  2026-08-17  LARS  32.2s
+  2026-08-18  LARS  32.1s
+  2026-08-19  LARS  33.2s
+  2026-08-20  LARS  32.9s
+  2026-08-21  LARS  32.5s
+  2026-08-22  LARS  33.3s
+  2026-08-23  LARS  33.7s
+  2026-08-24  LARS  32.6s
+  2026-08-25  LARS  32.7s
+  2026-08-26  LARS  34.1s
+  2026-08-27  LARS  35.4s
+  2026-08-28  LARS  33.9s
+  2026-08-29  LARS  33.0s
+  2026-08-30  LARS  32.9s
+  2026-08-31  LARS  33.1s
+  2026-09-01  LARS  31.7s
+  2026-09-02  LARS  32.7s
+  2026-09-03  LARS  32.1s
+  2026-09-04  LARS  32.8s
+  2026-09-05  LARS  32.6s
+  2026-09-06  LARS  32.7s
+  2026-09-07  LARS  33.0s
+  2026-09-08  LARS  32.6s
+  2026-09-09  LARS  33.3s
+  2026-09-10  LARS  32.8s
+  2026-09-11  LARS  32.3s
+  2026-09-12  LARS  31.9s
+  2026-09-13  LARS  32.2s
+  2026-09-14 unavailable EPEX lag block(s): price_d1; forecasting with remaining variables
+  2026-09-14  LARS  29.3s
+  2026-09-15 unavailable EPEX lag block(s): price_d2; forecasting with remaining variables
+  2026-09-15  LARS  28.9s
+  2026-09-16  LARS  31.9s
+  2026-09-17  LARS  31.9s
+Point forecast dwd_d56_c5_fundamental: 2026-07-19..2026-09-17
+dwd_d56_c5_fundamental: incomplete feature days detected=3; operational price policy will be applied
+  2026-07-19  LARS  87.2s
+  2026-07-20  LARS  89.7s
+  2026-07-21  LARS  89.7s
+  2026-07-22  LARS  89.5s
+  2026-07-23  LARS  86.3s
+  2026-07-24  LARS  85.8s
+  2026-07-25  LARS  88.0s
+  2026-07-26  LARS  87.9s
+  2026-07-27  LARS  88.1s
+  2026-07-28  LARS  89.4s
+  2026-07-29  LARS  89.6s
+  2026-07-30  LARS  89.3s
+  2026-07-31  LARS  88.8s
+  2026-08-01  LARS  87.4s
+  2026-08-02  LARS  86.8s
+  2026-08-03  LARS  86.9s
+  2026-08-04  LARS  88.1s
+  2026-08-05  LARS  88.8s
+  2026-08-06  LARS  89.0s
+  2026-08-07  LARS  87.6s
+  2026-08-08  LARS  86.8s
+  2026-08-09  LARS  87.5s
+  2026-08-10  LARS  88.0s
+  2026-08-11  LARS  87.0s
+  2026-08-12  LARS  87.7s
+  2026-08-13  LARS  88.5s
+  2026-08-14  LARS  90.2s
+  2026-08-15  LARS  95.2s
+  2026-08-16  LARS  94.2s
+  2026-08-17  LARS  94.1s
+  2026-08-18  LARS  91.2s
+  2026-08-19  LARS  92.3s
+  2026-08-20  LARS  95.8s
+  2026-08-21  LARS  95.0s
+  2026-08-22  LARS  95.8s
+  2026-08-23  LARS  94.4s
+  2026-08-24  LARS  93.2s
+  2026-08-25  LARS  94.4s
+  2026-08-26  LARS  94.2s
+  2026-08-27  LARS  94.2s
+  2026-08-28  LARS  95.3s
+  2026-08-29  LARS  95.2s
+  2026-08-30  LARS  96.8s
+  2026-08-31  LARS  97.2s
+  2026-09-01  LARS  96.1s
+  2026-09-02  LARS  98.3s
+  2026-09-03  LARS  97.1s
+  2026-09-04  LARS  95.3s
+  2026-09-05  LARS  92.9s
+  2026-09-06  LARS  94.7s
+  2026-09-07  LARS  93.1s
+  2026-09-08  LARS  94.6s
+  2026-09-09  LARS  93.9s
+  2026-09-10  LARS  91.9s
+  2026-09-11  LARS  93.2s
+  2026-09-12  LARS  94.4s
+  2026-09-13  LARS  94.3s
+  2026-09-14 unavailable EPEX lag block(s): price_d1; forecasting with remaining variables
+  2026-09-14  LARS  87.0s
+  2026-09-15 unavailable EPEX lag block(s): price_d2; forecasting with remaining variables
+  2026-09-15  LARS  83.1s
+  2026-09-16  LARS  88.2s
+  2026-09-17  LARS  86.7s
+Point forecast dwd_d56_c25_fundamental: 2026-07-19..2026-09-17
+dwd_d56_c25_fundamental: incomplete feature days detected=3; operational price policy will be applied
+  2026-07-19  LARS  399.4s
+  2026-07-20  LARS  399.5s
+  2026-07-21  LARS  408.7s
+  2026-07-22  LARS  430.6s
+  2026-07-23  LARS  419.4s
+  2026-07-24  LARS  424.4s
+  2026-07-25  LARS  423.1s
+  2026-07-26  LARS  426.9s
+  2026-07-27  LARS  433.6s
+  2026-07-28  LARS  423.7s
+  2026-07-29  LARS  402.5s
+  2026-07-30  LARS  404.9s
+  2026-07-31  LARS  413.3s
+  2026-08-01  LARS  422.9s
+  2026-08-02  LARS  423.2s
+  2026-08-03  LARS  420.6s
+  2026-08-04  LARS  406.9s
+  2026-08-05  LARS  407.8s
+  2026-08-06  LARS  408.3s
+  2026-08-07  LARS  408.0s
+  2026-08-08  LARS  408.4s
+  2026-08-09  LARS  412.7s
+  2026-08-10  LARS  410.5s
+  2026-08-11  LARS  478.0s
+  2026-08-12  LARS  484.5s
+  2026-08-13  LARS  485.1s
+  2026-08-14  LARS  486.5s
+  2026-08-15  LARS  493.2s
+  2026-08-16  LARS  494.6s
+  2026-08-17  LARS  454.4s
+  2026-08-18  LARS  420.8s
+  2026-08-19  LARS  421.2s
+  2026-08-20  LARS  420.3s
+  2026-08-21  LARS  420.6s
+  2026-08-22  LARS  420.4s
+  2026-08-23  LARS  424.8s
+  2026-08-24  LARS  424.7s
+  2026-08-25  LARS  425.9s
+  2026-08-26  LARS  429.3s
+  2026-08-27  LARS  427.9s
+  2026-08-28  LARS  430.0s
+  2026-08-29  LARS  432.6s
+  2026-08-30  LARS  431.5s
+  2026-08-31  LARS  430.0s
+  2026-09-01  LARS  429.4s
+  2026-09-02  LARS  428.7s
+  2026-09-03  LARS  427.7s
+  2026-09-04  LARS  431.3s
+  2026-09-05  LARS  433.1s
+  2026-09-06  LARS  434.5s
+  2026-09-07  LARS  432.6s
+  2026-09-08  LARS  435.9s
+  2026-09-09  LARS  435.2s
+  2026-09-10  LARS  432.9s
+  2026-09-11  LARS  432.8s
+  2026-09-12  LARS  436.6s
+  2026-09-13  LARS  436.1s
+  2026-09-14 unavailable EPEX lag block(s): price_d1; forecasting with remaining variables
+  2026-09-14  LARS  429.0s
+  2026-09-15 unavailable EPEX lag block(s): price_d2; forecasting with remaining variables
+  2026-09-15  LARS  427.9s
+  2026-09-16  LARS  429.9s
+  2026-09-17  LARS  432.7s
+2026-09-17
+Point payload: C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\2\2026-09-17T00-00-00+02-00.json
+Quantile payload: C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\8\2026-09-17T00-00-00+02-00.json
+Submission disabled; validated payloads were saved locally.
+{
+  "target_start": "2026-09-17T00:00:00+02:00",
+  "point_model": "dwd_d56_c5_fundamental",
+  "sqra_model": "dwd_fundamental",
+  "point_payload": "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\default\\2\\2026-09-17T00-00-00+02-00.json",
+  "quantile_payload": "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\default\\8\\2026-09-17T00-00-00+02-00.json",
+  "submissions": {}
+}
+completed_at=2026-09-17T00:00:55.127238+02:00
+status=success

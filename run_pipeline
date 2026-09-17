@@ -1,0 +1,8 @@
+#!/usr/bin/env python3
+"""Extensionless compatibility launcher for ``python run_pipeline``."""
+
+from pipeline.operational.runner import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

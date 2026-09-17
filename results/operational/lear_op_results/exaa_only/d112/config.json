@@ -1,0 +1,16 @@
+{
+  "mode": "daily_operational",
+  "model": "exaa_only_d112",
+  "train_days": 112,
+  "weather_source": null,
+  "n_clusters": null,
+  "use_exaa": true,
+  "use_exaa_only": true,
+  "use_vst": true,
+  "dwd_operational_run_hour": "06",
+  "dwd_history_run_hour": "09",
+  "missing_price_policy": "skip incomplete training rows and suppress unavailable target-day EPEX lag columns",
+  "forecast_schema_version": 2,
+  "forecast_index": "delivery_date_mtu",
+  "mtus_per_delivery_day": 96
+}

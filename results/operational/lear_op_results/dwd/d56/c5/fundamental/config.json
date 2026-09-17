@@ -1,0 +1,16 @@
+{
+  "mode": "daily_operational",
+  "model": "dwd_d56_c5_fundamental",
+  "train_days": 56,
+  "weather_source": "DWD",
+  "n_clusters": 5,
+  "use_exaa": false,
+  "use_exaa_only": false,
+  "use_vst": true,
+  "dwd_operational_run_hour": "06",
+  "dwd_history_run_hour": "09",
+  "missing_price_policy": "skip incomplete training rows and suppress unavailable target-day EPEX lag columns",
+  "forecast_schema_version": 2,
+  "forecast_index": "delivery_date_mtu",
+  "mtus_per_delivery_day": 96
+}

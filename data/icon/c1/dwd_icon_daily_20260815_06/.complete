@@ -1,0 +1,96 @@
+{
+  "format": "icon_d2_processed_parquet",
+  "format_version": 2,
+  "issue_date": "20260815",
+  "parquet": "icon_d2_aggregated.parquet",
+  "parquet_size": 6562,
+  "run_hour": "06",
+  "variables": {
+    "ASWDIFD_S": {
+      "clusters": 1,
+      "columns": 1,
+      "field_name": "ASWDIFD_S",
+      "first_timestamp": "2026081506",
+      "former_csv_name": "ASWDIFD_S_W_m-2_2026081506_instantaneous.csv",
+      "long_name": "Downward diffusive short wave radiation flux at surface (mean over forecast time)",
+      "rows": 193,
+      "source_folder": "aswdifd_s",
+      "step_type": "avg",
+      "transformation": "instantaneous flux",
+      "units": "W m-2"
+    },
+    "ASWDIR_S": {
+      "clusters": 1,
+      "columns": 1,
+      "field_name": "ASWDIR_S",
+      "first_timestamp": "2026081506",
+      "former_csv_name": "ASWDIR_S_W_m-2_2026081506_instantaneous.csv",
+      "long_name": "Downward direct short wave radiation flux at surface (mean over forecast time)",
+      "rows": 193,
+      "source_folder": "aswdir_s",
+      "step_type": "avg",
+      "transformation": "instantaneous flux",
+      "units": "W m-2"
+    },
+    "sde": {
+      "clusters": 1,
+      "columns": 1,
+      "field_name": "sde",
+      "first_timestamp": "2026081506",
+      "former_csv_name": "sde_m_2026081506_raw.csv",
+      "long_name": "Snow depth",
+      "rows": 49,
+      "source_folder": "h_snow",
+      "step_type": "instant",
+      "transformation": "raw",
+      "units": "m"
+    },
+    "t2m": {
+      "clusters": 1,
+      "columns": 1,
+      "field_name": "t2m",
+      "first_timestamp": "2026081506",
+      "former_csv_name": "t2m_K_2026081506_raw.csv",
+      "long_name": "2 metre temperature",
+      "rows": 49,
+      "source_folder": "t_2m",
+      "step_type": "instant",
+      "transformation": "raw",
+      "units": "K"
+    },
+    "u10": {
+      "clusters": 1,
+      "columns": 1,
+      "field_name": "u10",
+      "first_timestamp": "2026081506",
+      "former_csv_name": "u10_m_s-1_2026081506_raw.csv",
+      "long_name": "10 metre U wind component",
+      "rows": 49,
+      "source_folder": "u_10m",
+      "step_type": "instant",
+      "transformation": "raw",
+      "units": "m s**-1"
+    },
+    "v10": {
+      "clusters": 1,
+      "columns": 1,
+      "field_name": "v10",
+      "first_timestamp": "2026081506",
+      "former_csv_name": "v10_m_s-1_2026081506_raw.csv",
+      "long_name": "10 metre V wind component",
+      "rows": 49,
+      "source_folder": "v_10m",
+      "step_type": "instant",
+      "transformation": "raw",
+      "units": "m s**-1"
+    }
+  },
+  "variables_order": [
+    "t2m",
+    "u10",
+    "v10",
+    "ASWDIR_S",
+    "ASWDIFD_S",
+    "sde"
+  ]
+}

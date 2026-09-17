@@ -1,0 +1,23 @@
+# Single Python environment for the complete pipeline, retained notebooks,
+# evaluation, and visualizations. Versions are intentionally not pinned.
+cfgrib
+beautifulsoup4
+eccodes
+entsoe-py
+geopandas
+holidays
+ipykernel
+jupyter
+matplotlib
+numpy
+openpyxl
+pandas
+pyarrow
+pyogrio
+requests
+remodels
+scikit-learn
+scipy
+shapely
+tzdata
+xarray
