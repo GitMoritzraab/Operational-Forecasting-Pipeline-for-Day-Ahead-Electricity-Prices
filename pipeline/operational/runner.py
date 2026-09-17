@@ -679,8 +679,10 @@ def _payload_path(
     challenge_id: str,
     target_start: datetime,
 ) -> Path:
-    token = target_start.isoformat().replace(":", "-")
-    return config.output_root / "payloads" / account / challenge_id / f"{token}.json"
+    # Keep the target in the interface alongside the challenge metadata, while
+    # retaining only the latest validated payload for each account/challenge.
+    del target_start
+    return config.output_root / "payloads" / account / challenge_id / "latest.json"
 
 
 def _required_input_start(

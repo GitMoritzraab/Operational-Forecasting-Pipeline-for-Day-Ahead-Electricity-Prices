@@ -26,6 +26,7 @@ from pipeline.operational.energy_arena import (
     submission_record_path,
 )
 from pipeline.operational.runner import (
+    _payload_path,
     _redacted_command,
     build_parser,
     main,
@@ -250,6 +251,28 @@ class OperationalModelPlanTests(unittest.TestCase):
         self.assertEqual(
             pipeline_log_path(exaa_only),
             root / "output" / "logs" / "exaa_only.log",
+        )
+
+    def test_payload_path_is_stable_across_target_days(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config = _config(Path(temporary_directory))
+            first = _payload_path(
+                config,
+                "default",
+                "2",
+                datetime(2026, 9, 17, tzinfo=ZoneInfo("Europe/Berlin")),
+            )
+            second = _payload_path(
+                config,
+                "default",
+                "2",
+                datetime(2026, 9, 18, tzinfo=ZoneInfo("Europe/Berlin")),
+            )
+
+        self.assertEqual(first, second)
+        self.assertEqual(
+            first,
+            config.output_root / "payloads" / "default" / "2" / "latest.json",
         )
 
     def test_cli_accepts_requested_exaa_and_arena_aliases(self):

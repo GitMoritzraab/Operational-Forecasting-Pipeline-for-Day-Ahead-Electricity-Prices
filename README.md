@@ -248,13 +248,14 @@ python .\prepare_dwd_data.py --migrate-only
 ```
 
 Payloads, submission receipts, and logs are stored below
-`OPERATIONAL_OUTPUT_ROOT`. Payload JSON files remain account-, challenge-, and
-target-specific. Logs are replace-on-each-run files named `fundamental.log`,
-`exaa_enriched.log`, or `exaa_only.log`. Submission receipts retain only
-`submissions/<account>/<challenge>/latest.json`, which is replaced after the
-next successful submission. An identical immediate rerun is not posted twice
-unless `--force-submit` is used. Point/SQRA forecast histories are stored below
-`OPERATIONAL_RESULTS_ROOT` using the same result layout as the paper pipeline.
+`OPERATIONAL_OUTPUT_ROOT`. Each account/challenge retains only
+`payloads/<account>/<challenge>/latest.json` and
+`submissions/<account>/<challenge>/latest.json`; both are replaced by the next
+daily run. Logs are likewise replace-on-each-run files named `fundamental.log`,
+`exaa_enriched.log`, or `exaa_only.log`. An identical immediate rerun is not
+posted twice unless `--force-submit` is used. Point/SQRA forecast histories are
+stored below `OPERATIONAL_RESULTS_ROOT` using the same result layout as the
+paper pipeline.
 
 ## Historical weather preprocessing
 

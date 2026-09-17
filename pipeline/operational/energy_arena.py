@@ -291,9 +291,9 @@ def submission_record_path(
     challenge_id: str,
     target_start: datetime,
 ) -> Path:
-    # Keep ``target_start`` in the interface for callers that also construct a
-    # dated payload path. Submission receipts intentionally retain only the
-    # latest successful response for each account/challenge pair.
+    # Keep ``target_start`` in the interface for consistency with payload path
+    # construction. Receipts intentionally retain only the latest successful
+    # response for each account/challenge pair.
     del target_start
     return output_root / "submissions" / account / challenge_id / "latest.json"
 
