@@ -13,16 +13,16 @@ Point forecast exaa_only_d112: 2026-07-21..2026-09-19
 Point forecast exaa_only_d364: 2026-07-21..2026-09-19
   2026-09-19  LassoCV  9.8s
 2026-09-19
-Point payload: C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\2\latest.json
-Quantile payload: C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\8\latest.json
+Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\2\latest.json
+Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\8\latest.json
 Energy Arena point: {'submission_id': 70714, 'submission_ids': [70714], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-18T09:35:01.371920Z'}
 Energy Arena quantile: {'submission_id': 70715, 'submission_ids': [70715], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-18T09:35:01.521925Z'}
 {
   "target_start": "2026-09-19T00:00:00+02:00",
   "point_model": "exaa_only_d364",
   "sqra_model": "exaa_only",
-  "point_payload": "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\2\\latest.json",
-  "quantile_payload": "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\8\\latest.json",
+  "point_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\2\\latest.json",
+  "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\8\\latest.json",
   "submissions": {
     "point": {
       "submission_id": 70714,

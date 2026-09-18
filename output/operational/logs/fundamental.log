@@ -18,16 +18,16 @@ Point forecast dwd_d56_c25_fundamental: 2026-07-21..2026-09-19
 dwd_d56_c25_fundamental: incomplete feature days detected=1; operational price policy will be applied
   2026-09-19  LARS  396.1s
 2026-09-19
-Point payload: C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\2\latest.json
-Quantile payload: C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\8\latest.json
+Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\2\latest.json
+Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\8\latest.json
 Energy Arena point: {'submission_id': 70683, 'submission_ids': [70683], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-18T08:39:17.610750Z'}
 Energy Arena quantile: {'submission_id': 70684, 'submission_ids': [70684], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-18T08:39:17.761590Z'}
 {
   "target_start": "2026-09-19T00:00:00+02:00",
   "point_model": "dwd_d56_c5_fundamental",
   "sqra_model": "dwd_fundamental",
-  "point_payload": "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\default\\2\\latest.json",
-  "quantile_payload": "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\default\\8\\latest.json",
+  "point_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\default\\2\\latest.json",
+  "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\default\\8\\latest.json",
   "submissions": {
     "point": {
       "submission_id": 70683,

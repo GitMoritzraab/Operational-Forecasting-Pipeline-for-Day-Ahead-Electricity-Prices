@@ -11,9 +11,9 @@
     0.975
   ],
   "import_paths": [
-    "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\results\\operational\\lear_op_results\\dwd\\d56\\c1\\fundamental\\forecast.csv",
-    "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\results\\operational\\lear_op_results\\dwd\\d56\\c5\\fundamental\\forecast.csv",
-    "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\results\\operational\\lear_op_results\\dwd\\d56\\c25\\fundamental\\forecast.csv"
+    "DA_Price_Forecasting_Pipeline_DE_LU-main\\results\\operational\\lear_op_results\\dwd\\d56\\c1\\fundamental\\forecast.csv",
+    "DA_Price_Forecasting_Pipeline_DE_LU-main\\results\\operational\\lear_op_results\\dwd\\d56\\c5\\fundamental\\forecast.csv",
+    "DA_Price_Forecasting_Pipeline_DE_LU-main\\results\\operational\\lear_op_results\\dwd\\d56\\c25\\fundamental\\forecast.csv"
   ],
   "forecast_schema_version": 2,
   "forecast_index": "delivery_date_mtu",
