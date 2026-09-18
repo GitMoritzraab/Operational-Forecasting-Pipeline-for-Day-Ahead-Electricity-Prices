@@ -1,54 +1,53 @@
-started_at=2026-09-17T10:30:02.445389+02:00
+started_at=2026-09-18T10:30:02.877631+02:00
 command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline.py --fundamental
-Target: 2026-09-18T00:00:00+02:00
+Target: 2026-09-19T00:00:00+02:00
 Submitted point model: dwd_d56_c5_fundamental
 SQRA configuration: dwd_fundamental
 Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
 Point runs: dwd_d56_c1_fundamental, dwd_d56_c5_fundamental, dwd_d56_c25_fundamental
-DWD histories ready for delivery 2026-09-18: C=1, C=5, C=25
-Updating prices_da.csv: 2026-09-13 through 2026-09-17
-WARNING: prices_da.csv remains incomplete for 96 timestamp(s) on delivery day(s): 2026-09-13
-Updating load_forecast.csv: 2026-09-18 through 2026-09-18
-Point forecast dwd_d56_c1_fundamental: 2026-07-20..2026-09-18
-dwd_d56_c1_fundamental: incomplete feature days detected=3; operational price policy will be applied
-  2026-09-18  LARS  32.6s
-Point forecast dwd_d56_c5_fundamental: 2026-07-20..2026-09-18
-dwd_d56_c5_fundamental: incomplete feature days detected=3; operational price policy will be applied
-  2026-09-18  LARS  84.3s
-Point forecast dwd_d56_c25_fundamental: 2026-07-20..2026-09-18
-dwd_d56_c25_fundamental: incomplete feature days detected=3; operational price policy will be applied
-  2026-09-18  LARS  392.3s
-2026-09-18
-Point payload: C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\2\2026-09-18T00-00-00+02-00.json
-Quantile payload: C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\8\2026-09-18T00-00-00+02-00.json
-Energy Arena point: {'submission_id': 70448, 'submission_ids': [70448], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-17T08:38:56.005612Z'}
-Energy Arena quantile: {'submission_id': 70449, 'submission_ids': [70449], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-17T08:38:56.142155Z'}
+DWD histories ready for delivery 2026-09-19: C=1, C=5, C=25
+Updating prices_da.csv: 2026-09-13 through 2026-09-18
+Updating load_forecast.csv: 2026-09-19 through 2026-09-19
+Point forecast dwd_d56_c1_fundamental: 2026-07-21..2026-09-19
+dwd_d56_c1_fundamental: incomplete feature days detected=1; operational price policy will be applied
+  2026-09-19  LARS  33.6s
+Point forecast dwd_d56_c5_fundamental: 2026-07-21..2026-09-19
+dwd_d56_c5_fundamental: incomplete feature days detected=1; operational price policy will be applied
+  2026-09-19  LARS  92.7s
+Point forecast dwd_d56_c25_fundamental: 2026-07-21..2026-09-19
+dwd_d56_c25_fundamental: incomplete feature days detected=1; operational price policy will be applied
+  2026-09-19  LARS  396.1s
+2026-09-19
+Point payload: C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\2\latest.json
+Quantile payload: C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\8\latest.json
+Energy Arena point: {'submission_id': 70683, 'submission_ids': [70683], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-18T08:39:17.610750Z'}
+Energy Arena quantile: {'submission_id': 70684, 'submission_ids': [70684], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-18T08:39:17.761590Z'}
 {
-  "target_start": "2026-09-18T00:00:00+02:00",
+  "target_start": "2026-09-19T00:00:00+02:00",
   "point_model": "dwd_d56_c5_fundamental",
   "sqra_model": "dwd_fundamental",
-  "point_payload": "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\default\\2\\2026-09-18T00-00-00+02-00.json",
-  "quantile_payload": "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\default\\8\\2026-09-18T00-00-00+02-00.json",
+  "point_payload": "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\default\\2\\latest.json",
+  "quantile_payload": "C:\\Users\\mg8285\\Documents\\DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\default\\8\\latest.json",
   "submissions": {
     "point": {
-      "submission_id": 70448,
+      "submission_id": 70683,
       "submission_ids": [
-        70448
+        70683
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-09-17T08:38:56.005612Z"
+      "submitted_at": "2026-09-18T08:39:17.610750Z"
     },
     "quantile": {
-      "submission_id": 70449,
+      "submission_id": 70684,
       "submission_ids": [
-        70449
+        70684
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-09-17T08:38:56.142155Z"
+      "submitted_at": "2026-09-18T08:39:17.761590Z"
     }
   }
 }
-completed_at=2026-09-17T10:38:56.170885+02:00
+completed_at=2026-09-18T10:39:17.801746+02:00
 status=success

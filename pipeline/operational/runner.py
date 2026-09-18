@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 import traceback
 from contextlib import ExitStack
 from dataclasses import replace
@@ -50,8 +51,8 @@ from pipeline.operational.locking import interprocess_lock
 from pipeline.operational.energy_arena import (
     ArenaTargets,
     atomic_write_json,
-    build_point_payload,
     build_quantile_payload,
+    build_sqra_median_point_payload,
     resolve_targets,
     submission_record_path,
     submit_with_record,
@@ -80,6 +81,18 @@ def _redacted_command(arguments: Sequence[str]) -> str:
     return " ".join(
         [sys.executable, str(Path(sys.argv[0]).name), *arguments]
     )
+
+
+def _display_path(config: OperationalConfig, path: Path) -> str:
+    """Render repository files without exposing the machine-specific prefix."""
+    resolved = Path(path).resolve()
+    try:
+        relative = resolved.relative_to(config.repo_root.resolve())
+    except ValueError:
+        # A deliberately external data path cannot be represented beneath the
+        # repository name without making the displayed location misleading.
+        return str(resolved)
+    return str(Path(config.repo_root.name) / relative)
 
 
 def _point_name(variant: str, clusters: int) -> str:
@@ -173,7 +186,12 @@ def _timestamp(value: date, timezone: str) -> pd.Timestamp:
     return pd.Timestamp(value, tz=timezone)
 
 
-def _fetch_retry(label: str, operation, attempts: int = 3):
+def _fetch_retry(
+    label: str,
+    operation,
+    attempts: int = 3,
+    retry_seconds: int = 300,
+):
     last_error: Exception | None = None
     for attempt in range(1, attempts + 1):
         try:
@@ -182,7 +200,12 @@ def _fetch_retry(label: str, operation, attempts: int = 3):
             last_error = exc
             if attempt == attempts:
                 break
-            print(f"{label} attempt {attempt} failed: {exc}; retrying", flush=True)
+            print(
+                f"{label} attempt {attempt} failed: {exc}; "
+                f"retrying in {retry_seconds} seconds",
+                flush=True,
+            )
+            time.sleep(retry_seconds)
     raise RuntimeError(f"{label} failed after {attempts} attempts: {last_error}")
 
 
@@ -231,6 +254,7 @@ def load_market_data(
             timezone=config.timezone,
             allow_incomplete=True,
         ),
+        retry_seconds=config.market_data_retry_seconds,
     )
 
     exaa: Optional[pd.DataFrame] = None
@@ -255,6 +279,7 @@ def load_market_data(
                     ),
                     timezone=config.timezone,
                 ),
+                retry_seconds=config.market_data_retry_seconds,
             )
 
     load: Optional[pd.DataFrame] = None
@@ -272,6 +297,7 @@ def load_market_data(
                 ),
                 timezone=config.timezone,
             ),
+            retry_seconds=config.market_data_retry_seconds,
         )
     return prices, exaa, load
 
@@ -649,7 +675,10 @@ def run_sqra_model(
             "train_days": config.sqra_train_days,
             "mtu_specific": config.sqra_mtu_specific,
             "quantiles": list(quantiles),
-            "import_paths": [str(path) for path in specification.inputs(config.results_root)],
+            "import_paths": [
+                _display_path(config, path)
+                for path in specification.inputs(config.results_root)
+            ],
             **schema_metadata(),
         },
     )
@@ -708,7 +737,8 @@ def execute_pipeline(
         target_date, runs, sqra_members, config.sqra_train_days
     )
     print(f"Target: {targets.target_start.isoformat()}")
-    print(f"Submitted point model: {point_run.name}")
+    print(f"Submitted point forecast: SQRA {sqra_name}, q=0.500")
+    print(f"Reference LEAR point run: {point_run.name}")
     print(f"SQRA configuration: {sqra_name}")
     print("Arena quantiles: " + ", ".join(f"{q:g}" for q in targets.quantile.quantiles))
     print("Point runs: " + ", ".join(run.name for run in runs))
@@ -750,13 +780,14 @@ def execute_pipeline(
             force=force_forecast,
         )
 
+    sqra_quantiles = tuple(sorted({*targets.quantile.quantiles, 0.5}))
     sqra = run_sqra_model(
         config,
         sqra_name,
         target_date,
-        targets.quantile.quantiles,
+        sqra_quantiles,
     )
-    point_payload = build_point_payload(forecasts[point_run.name], targets.point)
+    point_payload = build_sqra_median_point_payload(sqra, targets.point)
     quantile_payload = build_quantile_payload(sqra, targets.quantile)
     submission_stream = _submission_stream(config)
     point_payload_path = _payload_path(
@@ -773,8 +804,8 @@ def execute_pipeline(
     )
     atomic_write_json(point_payload_path, point_payload)
     atomic_write_json(quantile_payload_path, quantile_payload)
-    print(f"Point payload: {point_payload_path}")
-    print(f"Quantile payload: {quantile_payload_path}")
+    print(f"Point payload: {_display_path(config, point_payload_path)}")
+    print(f"Quantile payload: {_display_path(config, quantile_payload_path)}")
 
     submissions: dict[str, object] = {}
     if submit:
@@ -801,22 +832,31 @@ def execute_pipeline(
                     challenge.challenge_id,
                     challenge.target_start,
                 )
-                submissions[label] = submit_with_record(
+                submission_result = submit_with_record(
                     api_base=config.arena_api_base_url,
                     api_key=config.arena_api_key,
                     payload=payload,
                     record_path=record_path,
                     force=force_submit,
                 )
+                if "record" in submission_result:
+                    submission_result = {
+                        **submission_result,
+                        "record": _display_path(
+                            config, Path(str(submission_result["record"]))
+                        ),
+                    }
+                submissions[label] = submission_result
                 print(f"Energy Arena {label}: {submissions[label]}")
     else:
         print("Submission disabled; validated payloads were saved locally.")
     return {
         "target_start": targets.target_start.isoformat(),
-        "point_model": point_run.name,
+        "point_model": f"{sqra_name}:q0.500",
+        "reference_lear_model": point_run.name,
         "sqra_model": sqra_name,
-        "point_payload": str(point_payload_path),
-        "quantile_payload": str(quantile_payload_path),
+        "point_payload": _display_path(config, point_payload_path),
+        "quantile_payload": _display_path(config, quantile_payload_path),
         "submissions": submissions,
     }
 
@@ -828,7 +868,15 @@ def build_parser() -> argparse.ArgumentParser:
     variants.add_argument("--exaa-only", "--exaa_only", action="store_true")
     variants.add_argument("--exaa-enriched", "--exaa_enriched", action="store_true")
     variants.add_argument("--fundamental", action="store_true")
-    parser.add_argument("--cluster", type=int, choices=(1, 5, 25))
+    parser.add_argument(
+        "--cluster",
+        type=int,
+        choices=(1, 5, 25),
+        help=(
+            "Select the reference weather LEAR run; the submitted point "
+            "forecast remains the SQRA q=0.5 median."
+        ),
+    )
     target_overrides = parser.add_mutually_exclusive_group()
     target_overrides.add_argument("--target-date", type=date.fromisoformat)
     target_overrides.add_argument(
@@ -923,12 +971,14 @@ def main(argv: Optional[Sequence[str]] = None, repo_root: Optional[Path] = None)
     if args.check_setup:
         print("Setup passed.")
         print(f"Next target: {targets.target_start.isoformat()}")
-        print(f"Point model: {point_run.name}")
+        print(f"Point submission: SQRA {sqra_name}, q=0.500")
+        print(f"Reference LEAR point run: {point_run.name}")
         print(f"SQRA model: {sqra_name}")
         return 0
     if args.dry_run:
         print(f"Target: {targets.target_start.isoformat()}")
-        print(f"Point submission: {point_run.name}")
+        print(f"Point submission: SQRA {sqra_name}, q=0.500")
+        print(f"Reference LEAR point run: {point_run.name}")
         print("Required point runs: " + ", ".join(run.name for run in runs))
         print(f"SQRA submission: {sqra_name}")
         print(
@@ -951,7 +1001,7 @@ def main(argv: Optional[Sequence[str]] = None, repo_root: Optional[Path] = None)
         config.output_root.mkdir(parents=True, exist_ok=True)
         log_path = pipeline_log_path(config)
         log_path.parent.mkdir(parents=True, exist_ok=True)
-        print(f"Pipeline log: {log_path}")
+        print(f"Pipeline log: {_display_path(config, log_path)}")
         with log_path.open("w", encoding="utf-8") as log:
             original_stdout, original_stderr = sys.stdout, sys.stderr
             sys.stdout = _Tee(original_stdout, log)

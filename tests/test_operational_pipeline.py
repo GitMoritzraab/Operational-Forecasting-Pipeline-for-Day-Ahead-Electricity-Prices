@@ -21,11 +21,14 @@ from pipeline.operational.energy_arena import (
     ArenaChallenge,
     build_point_payload,
     build_quantile_payload,
+    build_sqra_median_point_payload,
     physical_mtu_numbers,
     resolve_targets,
     submission_record_path,
 )
 from pipeline.operational.runner import (
+    _display_path,
+    _fetch_retry,
     _payload_path,
     _submission_stream,
     arena_lock_path,
@@ -91,6 +94,7 @@ def _config(root: Path, **overrides) -> OperationalConfig:
         "download_dwd": True,
         "delete_dwd_raw_after_preprocess": True,
         "download_exaa": "auto",
+        "market_data_retry_seconds": 300,
         "dwd_open_data_url": "https://opendata.dwd.de/weather/nwp/icon-d2/grib",
         "dwd_operational_run_hour": "06",
         "dwd_history_run_hour": "09",
@@ -126,6 +130,24 @@ def _challenge(objective: str, day: date) -> ArenaChallenge:
 
 
 class OperationalModelPlanTests(unittest.TestCase):
+    def test_repository_paths_are_displayed_without_machine_prefix(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory) / "DA_Price_Forecasting"
+            config = _config(root)
+            path = root / "results" / "operational" / "forecast.csv"
+
+            displayed = _display_path(config, path)
+
+        self.assertEqual(
+            displayed,
+            str(
+                Path("DA_Price_Forecasting")
+                / "results"
+                / "operational"
+                / "forecast.csv"
+            ),
+        )
+
     def test_operational_dwd_root_is_separate_from_historical_archive(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
@@ -150,7 +172,7 @@ class OperationalModelPlanTests(unittest.TestCase):
             config.exaa_price_cache_dir, root / "data" / "market" / "exaa"
         )
 
-    def test_default_dwd_plan_submits_c5_and_uses_all_clusters_for_sqra(self):
+    def test_default_dwd_plan_keeps_c5_reference_and_all_sqra_members(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             config = _config(Path(temporary_directory))
             runs, point_run, sqra_name, members = resolve_model_plan(config)
@@ -174,7 +196,7 @@ class OperationalModelPlanTests(unittest.TestCase):
         self.assertEqual(sqra_name, "dwd_fundamental")
         self.assertEqual(config.required_dwd_clusters, (1, 5, 25))
 
-    def test_exaa_only_submits_d364_and_combines_three_training_windows(self):
+    def test_exaa_only_keeps_d364_reference_and_three_sqra_members(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             config = _config(
                 Path(temporary_directory),
@@ -353,13 +375,32 @@ class EnergyArenaPayloadTests(unittest.TestCase):
         day = date(2026, 9, 16)
         point, quantile = self._forecasts(day)
         point_payload = build_point_payload(point, _challenge("point", day))
+        median_payload = build_sqra_median_point_payload(
+            quantile, _challenge("point", day)
+        )
         quantile_payload = build_quantile_payload(
             quantile, _challenge("quantile", day)
         )
 
         self.assertEqual(len(point_payload["values"]), 96)
+        self.assertEqual(len(median_payload["values"]), 96)
+        self.assertEqual(median_payload["values"][:3], [3, 4, 5])
+        self.assertNotEqual(point_payload["values"], median_payload["values"])
         self.assertEqual(np.asarray(quantile_payload["values"]).shape, (96, 5))
         self.assertEqual(quantile_payload["values"][0], [1, 2, 3, 4, 5])
+        self.assertEqual(
+            median_payload["values"],
+            np.asarray(quantile_payload["values"])[:, 2].tolist(),
+        )
+
+    def test_sqra_point_payload_requires_the_median_quantile(self):
+        day = date(2026, 9, 16)
+        _, quantile = self._forecasts(day)
+        with self.assertRaisesRegex(ValueError, "q0.500"):
+            build_sqra_median_point_payload(
+                quantile.drop(columns="q0.500"),
+                _challenge("point", day),
+            )
 
     def test_previous_delivery_day_is_derived_from_live_arena_target(self):
         catalog = {
@@ -628,6 +669,27 @@ class DwdAcquisitionTests(unittest.TestCase):
 
 
 class MarketCacheTests(unittest.TestCase):
+    def test_market_retry_waits_between_attempts(self):
+        calls = []
+
+        def operation():
+            calls.append(len(calls) + 1)
+            if len(calls) == 1:
+                raise RuntimeError("not published yet")
+            return "available"
+
+        with patch("pipeline.operational.runner.time.sleep") as sleep:
+            result = _fetch_retry(
+                "EXAA prices",
+                operation,
+                attempts=3,
+                retry_seconds=300,
+            )
+
+        self.assertEqual(result, "available")
+        self.assertEqual(calls, [1, 2])
+        sleep.assert_called_once_with(300)
+
     def test_empty_refresh_for_known_operational_gap_is_retained_as_missing(self):
         timezone = "Europe/Berlin"
         start = pd.Timestamp("2026-09-12", tz=timezone)

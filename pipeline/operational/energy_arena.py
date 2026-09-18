@@ -187,16 +187,47 @@ def build_point_payload(
     forecast: pd.DataFrame,
     challenge: ArenaChallenge,
 ) -> dict[str, Any]:
+    """Build a point payload from a conventional ``y_pred`` forecast."""
+    return _build_point_payload_from_column(
+        forecast,
+        challenge,
+        value_column="y_pred",
+        forecast_label="Point forecast",
+    )
+
+
+def build_sqra_median_point_payload(
+    forecast: pd.DataFrame,
+    challenge: ArenaChallenge,
+) -> dict[str, Any]:
+    """Build the point-challenge payload from the SQRA median forecast."""
+    return _build_point_payload_from_column(
+        forecast,
+        challenge,
+        value_column="q0.500",
+        forecast_label="SQRA median forecast",
+    )
+
+
+def _build_point_payload_from_column(
+    forecast: pd.DataFrame,
+    challenge: ArenaChallenge,
+    *,
+    value_column: str,
+    forecast_label: str,
+) -> dict[str, Any]:
     validate_delivery_index(forecast.index, require_complete_days=True)
     day = pd.Timestamp(challenge.target_start.date())
+    if value_column not in forecast.columns:
+        raise ValueError(f"{forecast_label} lacks required column {value_column}.")
     try:
-        canonical = forecast.loc[day, "y_pred"].reindex(range(1, 97))
+        canonical = forecast.loc[day, value_column].reindex(range(1, 97))
     except KeyError as exc:
-        raise ValueError(f"Point forecast lacks target day {day.date()}.") from exc
+        raise ValueError(f"{forecast_label} lacks target day {day.date()}.") from exc
     mtus = physical_mtu_numbers(day.date(), challenge.timezone)
     values = canonical.reindex(mtus).to_numpy(dtype=float)
     if not np.isfinite(values).all():
-        raise ValueError("Point payload contains NaN or infinite values.")
+        raise ValueError(f"{forecast_label} contains NaN or infinite values.")
     return {
         "challenge_id": challenge.challenge_id,
         "target_start": challenge.target_start.isoformat(),

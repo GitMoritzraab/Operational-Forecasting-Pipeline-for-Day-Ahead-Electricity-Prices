@@ -58,6 +58,7 @@ class OperationalConfig:
     download_dwd: bool
     delete_dwd_raw_after_preprocess: bool
     download_exaa: str
+    market_data_retry_seconds: int
     dwd_open_data_url: str
     dwd_operational_run_hour: str
     dwd_history_run_hour: str
@@ -139,6 +140,9 @@ def load_operational_config(repo_root: Path | str | None = None) -> OperationalC
     attempts = env_int("DWD_DOWNLOAD_MAX_ATTEMPTS", 5)
     if attempts < 1:
         raise ValueError("DWD_DOWNLOAD_MAX_ATTEMPTS must be at least 1.")
+    market_data_retry_seconds = env_int("MARKET_DATA_RETRY_SECONDS", 300)
+    if market_data_retry_seconds < 0:
+        raise ValueError("MARKET_DATA_RETRY_SECONDS must be at least 0.")
 
     return OperationalConfig(
         repo_root=root,
@@ -166,6 +170,7 @@ def load_operational_config(repo_root: Path | str | None = None) -> OperationalC
             "DELETE_DWD_RAW_AFTER_PREPROCESS", True
         ),
         download_exaa=_download_exaa_mode(),
+        market_data_retry_seconds=market_data_retry_seconds,
         dwd_open_data_url=os.getenv(
             "DWD_OPEN_DATA_URL",
             "https://opendata.dwd.de/weather/nwp/icon-d2/grib",

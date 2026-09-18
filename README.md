@@ -144,7 +144,9 @@ weather-based models, while EXAA prices are loaded only when the selected model
 uses them or `DOWNLOAD_EXAA=true`. Optional variables
 `OPERATIONAL_ENTSOE_PRICE_CACHE_DIR`,
 `OPERATIONAL_ENTSOE_LOAD_CACHE_DIR`, and `OPERATIONAL_EXAA_CACHE_DIR` can place
-the three caches elsewhere.
+the three caches elsewhere. When an ENTSO-E or EXAA request fails, the pipeline
+waits `MARKET_DATA_RETRY_SECONDS` (300 seconds by default) before its next
+attempt.
 
 ### Maintaining the ICON-D2 calibration history
 
@@ -219,11 +221,15 @@ that bootstrap, one new weather day is appended on every operational day.
 
 The default configuration follows the paper's selected operational setup:
 
-- point forecast: Fundamental LEAR with ICON-D2, `D_LEAR=56`, and `C=5`;
-- SQRA inputs: the matching Fundamental point forecasts for `C=1,5,25`;
+- SQRA inputs: Fundamental LEAR forecasts with ICON-D2, `D_LEAR=56`, and
+  `C={1,5,25}`;
 - probabilistic forecast: one pooled SQRA fit per requested quantile using the
   preceding 60 delivery days and all valid MTUs;
-- submissions: the `C=5` point forecast and the combined SQRA quantiles.
+- point submission: the SQRA median forecast (`q=0.5`); and
+- probabilistic submission: all quantiles requested by Energy Arena.
+
+The `C=5` Fundamental LEAR forecast is therefore no longer submitted directly.
+It remains one of the three point forecasts used to estimate SQRA.
 
 Run the complete workflow and submit both forecasts:
 
@@ -240,9 +246,11 @@ The runner then:
 3. updates the ENTSO-E price/load caches and, when required, the EXAA cache;
 4. fits any missing rolling LEAR point forecasts and updates their histories;
 5. fits the target-day SQRA models and generates non-crossing quantiles;
-6. creates DST-aware Energy Arena payloads with 92, 96, or 100 physical MTUs;
+6. uses SQRA `q=0.5` for the point payload and all requested SQRA quantiles for
+   the probabilistic payload;
+7. creates DST-aware Energy Arena payloads with 92, 96, or 100 physical MTUs;
    and
-7. submits the point and quantile payloads with `ENERGY_ARENA_API_KEY`.
+8. submits the point and quantile payloads with `ENERGY_ARENA_API_KEY`.
 
 Generate and validate everything without submitting:
 
@@ -274,10 +282,12 @@ python run_pipeline.py --exaa-enriched
 python run_pipeline.py --exaa-only
 ```
 
-The EXAA-Only point submission uses `D_LEAR=364`; its SQRA forecast combines
-the `D_LEAR={56,112,364}` EXAA-Only point models. For weather-based variants,
-`--cluster 1|5|25` selects the point forecast submitted to Energy Arena, while
-SQRA still generates and combines all three cluster resolutions.
+The EXAA-Only SQRA forecast combines the `D_LEAR={56,112,364}` EXAA-Only point
+models and submits its `q=0.5` median to the point challenge. The former
+`D_LEAR=364` point forecast remains an SQRA member but is no longer submitted
+directly. Weather-based SQRA likewise combines all three cluster resolutions.
+`--cluster 1|5|25` and `POINT_WEATHER_CLUSTERS` retain the reference LEAR run
+reported in logs and metadata; they do not change the submitted SQRA median.
 
 The equivalent `.env` settings are:
 
