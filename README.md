@@ -1,66 +1,68 @@
-# Day-Ahead Price Forecasting Pipeline DE-LU
+# An Open, Operational Probabilistic Forecasting Pipeline for Day-Ahead Electricity Prices
 
-This repository contains the forecasting pipeline accompanying the bachelor
-thesis *An Open-Source Probabilistic Forecasting Pipeline for German Day-Ahead
-Prices*. It produces 15-minute day-ahead forecasts for the EPEX DE-LU bidding
-zone with LEAR point models and SQRA probabilistic post-processing.
+This repository is the code base for the paper *An Open, Operational
+Probabilistic Forecasting Pipeline for Day-Ahead Electricity Prices*. It
+produces 15-minute point and probabilistic day-ahead electricity-price
+forecasts for the EPEX DE-LU bidding zone using LEAR point models and SQRA
+probabilistic post-processing.
 
-The automated pipeline is implemented entirely in Python modules. The three
-notebooks are optional interactive views. `run_pipeline.py` is the daily
-operational entry point through Energy Arena submission. Paper backtests are
-handled separately by `run_full_experiment.py` and `run_full_evaluation.py`.
+The repository supports two separate workflows:
+
+- `run_pipeline.py` is the fully open, automated, operational pipeline. It
+  maintains the required market and ICON-D2 inputs, estimates the point and
+  probabilistic models, generates the next day-ahead forecasts, and can submit
+  both forecasts to Energy Arena.
+- `run_full_experiment.py` and `run_full_evaluation.py` reproduce the paper's
+  experimental analysis. The first script generates the historical point and
+  SQRA forecasts; the second evaluates the completed forecasts and creates the
+  paper's tables and figures.
+
+All automated computation is implemented in ordinary Python modules. The
+notebooks are optional interfaces for interactive inspection and do not contain
+an alternative pipeline implementation.
 
 ## Repository structure
 
 ```text
 DA_Price_Forecasting_Pipeline_DE_LU/
+├── run_pipeline.py                 # daily operational entry point
+├── prepare_dwd_data.py             # daily ICON-D2 preparation
+├── run_full_experiment.py          # paper point and SQRA experiments
+├── run_full_evaluation.py          # paper evaluation, tables, and figures
 ├── pipeline/
+│   ├── operational/                # downloads, validation, submission, locking
 │   ├── lear/
-│   │   ├── lear_model.py
-│   │   ├── run_lear.py
-│   │   └── lear_pipeline.ipynb
+│   │   ├── lear_model.py           # reusable LEAR and feature functions
+│   │   ├── run_lear.py             # LEAR/ANC command-line entry point
+│   │   └── lear_pipeline.ipynb     # optional interactive interface
 │   ├── sqra/
-│   │   ├── sqra_model.py
-│   │   ├── run_sqra.py
-│   │   └── sqra_pipeline.ipynb
-│   └── operational/
-│       ├── config.py
-│       ├── dwd.py
-│       ├── energy_arena.py
-│       └── runner.py
+│   │   ├── sqra_model.py           # reusable SQRA functions
+│   │   ├── run_sqra.py             # SQRA command-line entry point
+│   │   └── sqra_pipeline.ipynb     # optional interactive interface
+│   ├── delivery_index.py           # canonical delivery-day/MTU indexing
+│   └── dwd_history.py              # appendable ICON-D2 history format
 ├── evaluation/
-│   ├── evaluation_core.py
-│   ├── run_evaluation.py
-│   └── evaluation.ipynb
-├── preprocessing/
-├── visualization/
-├── experiment_config.py
-├── experiment_manifest.py
-├── requirements.txt
-├── run_pipeline.py
-├── run_full_experiment.py
-└── run_full_evaluation.py
+│   ├── evaluation_core.py          # metrics and statistical tests
+│   ├── run_evaluation.py           # evaluation command-line entry point
+│   ├── evaluation.ipynb            # optional interactive interface
+│   └── ...                         # coverage checks and Excel exports
+├── preprocessing/                  # historical ERA5 and ICON-D2 preprocessing
+├── visualization/                  # publication figures and tables
+├── data/
+│   ├── clustering/                 # spatial ICON-D2 cluster definitions
+│   ├── icon/                       # consolidated operational weather histories
+│   └── shapefile/                  # map assets
+├── experiment_config.py            # shared paper-experiment configuration
+├── experiment_manifest.py          # canonical LEAR and SQRA configurations
+├── .env.example                    # configuration template
+└── requirements.txt                # one environment for the complete repository
 ```
 
-## Data
+## Setup
 
-The pipeline uses:
+### Python environment
 
-- ENTSO-E DE-LU day-ahead prices and load forecasts;
-- EXAA day-ahead prices obtained through the existing ENTSO-E client logic;
-- preprocessed DWD ICON-D2 forecasts;
-- preprocessed ERA5 reanalysis data.
-
-Market inputs are downloaded into the configured caches when their requested
-coverage is missing. The daily runner downloads and verifies the current
-ICON-D2 run when `DOWNLOAD_DWD=true`; raw ERA5 and historical ICON-D2 archives
-cannot be reconstructed from that operational endpoint and must be supplied
-for paper backtests or initial rolling-history bootstrap. All paths are
-configured in `.env`; notebook settings are not used by automated execution.
-
-## Setup with one Python 3.9 environment
-
-In PowerShell from the repository root:
+Python 3.9 is recommended. In PowerShell, from the repository root:
 
 ```powershell
 py -3.9 -m venv forecast
@@ -69,260 +71,300 @@ python -m pip install --upgrade pip
 python -m pip install -r .\requirements.txt
 ```
 
-The same requirements file also contains the optional Jupyter packages, so the
-retained notebooks work in this one environment. Registering a notebook kernel
-is optional:
+The single `requirements.txt` covers the operational pipeline, paper
+experiments, evaluation, visualizations, and optional notebooks. Registering a
+Jupyter kernel is optional:
 
 ```powershell
 python -m ipykernel install --user --name forecast --display-name "forecast (Python 3.9)"
 ```
 
-Copy `.env.example` to `.env`, add the ENTSO-E and Energy Arena API keys, and
-set the raw, processed, cache, and output paths.
+### Environment configuration
+
+Create the local configuration file:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+At minimum, configure:
+
+```dotenv
+ENTSOE_API_KEY=...
+ENERGY_ARENA_API_KEY=...
+
+ICON_DATA_ROOT=data/icon
+DWD_OPERATIONAL_RAW_ROOT=data/dwd_raw
+OPERATIONAL_MARKET_DATA_ROOT=data/market
+OPERATIONAL_RESULTS_ROOT=results/operational
+OPERATIONAL_OUTPUT_ROOT=output/operational
+```
+
+`ENTSOE_API_KEY` is required for DE-LU prices, EXAA prices, and load forecasts.
+`ENERGY_ARENA_API_KEY` is required only when forecasts are submitted. Input,
+cache, result, and output paths can be absolute or relative to the repository
+root. 
+
+Before the first operational run, inspect the resolved configuration and live
+Energy Arena target:
+
+```powershell
+python run_pipeline.py --check-setup
+python run_pipeline.py --dry-run
+```
 
 ## Daily operational pipeline
 
-The default daily configuration follows the paper's selected operational
-model:
+### Operational data
 
-- point submission: DWD/ICON-D2 Fundamental LEAR, `D=56`, `C=5`;
-- SQRA inputs: the matching DWD Fundamental point forecasts for `C=1,5,25`;
-- quantile submission: one pooled SQRA fit per required quantile, using the
-  preceding 60 delivery days and all 96 MTUs per day.
+The operational pipeline uses only the data required for the next daily
+forecast and its rolling calibration:
 
-Thus, one default run generates all three DWD point forecasts needed by SQRA,
-submits only the `C=5` forecast to the point challenge, and combines `C=1,5,25`
-for the quantile challenge. The Energy Arena challenge metadata determines the
-required quantile levels and the correct 92/96/100-value DST payload length.
+| Input | Purpose | Acquisition |
+|---|---|---|
+| EPEX DE-LU day-ahead prices | LEAR targets and lagged price features | ENTSO-E API |
+| ENTSO-E DE-LU load forecast | Fundamental-model feature | ENTSO-E API |
+| EXAA day-ahead prices | EXAA-Enriched and EXAA-Only features | ENTSO-E API, sequence 2 |
+| DWD ICON-D2 forecasts | Wind and solar features | DWD Open Data |
+| ICON-D2 cluster definitions | Spatial aggregation for `C=1,5,25` | Versioned under `data/clustering` |
 
-First inspect the resolved live target and model plan without downloading or
-fitting:
+The market caches are updated automatically whenever coverage is missing:
+
+```text
+OPERATIONAL_MARKET_DATA_ROOT/
+├── entsoe/
+│   ├── prices_da.csv
+│   └── load_forecast.csv
+└── exaa/
+    └── prices_exaa.csv
+```
+
+ENTSO-E prices are always maintained. Load forecasts are required by
+weather-based models, while EXAA prices are loaded only when the selected model
+uses them or `DOWNLOAD_EXAA=true`. Optional variables
+`OPERATIONAL_ENTSOE_PRICE_CACHE_DIR`,
+`OPERATIONAL_ENTSOE_LOAD_CACHE_DIR`, and `OPERATIONAL_EXAA_CACHE_DIR` can place
+the three caches elsewhere.
+
+### Maintaining the ICON-D2 calibration history
+
+The DWD operational archive does not provide the complete sequence of past
+ICON-D2 forecasts needed to reconstruct a rolling model calibration later.
+Consequently, the relevant forecast run must be collected every day. The
+repository downloads the preceding 06 UTC ICON-D2 run, verifies it, aggregates
+it to the spatial resolutions `C=1,5,25`, and appends the new delivery day to
+the persistent weather histories.
+
+The consolidated cluster histories under the default `data/icon` path are
+updated and published to this GitHub repository every day. A fresh clone
+therefore contains the collected historical ICON-D2 cluster information up to
+the repository's latest update. Users do not need to obtain all past raw
+forecasts themselves before calibrating the model; they only need to continue
+the daily download and preparation process for new delivery days. The large raw
+GRIB/ZIP downloads are not versioned—only the compact, preprocessed Parquet
+histories required by the forecasting models are maintained in the repository.
+
+This produces four appendable Parquet histories for every spatial resolution:
+
+```text
+ICON_DATA_ROOT/
+├── c1/
+│   ├── u10.parquet
+│   ├── v10.parquet
+│   ├── ASWDIR_S.parquet
+│   ├── ASWDIFD_S.parquet
+│   └── dwd_history.json
+├── c5/
+│   ├── u10.parquet
+│   ├── v10.parquet
+│   ├── ASWDIR_S.parquet
+│   ├── ASWDIFD_S.parquet
+│   └── dwd_history.json
+└── c25/
+    ├── u10.parquet
+    ├── v10.parquet
+    ├── ASWDIR_S.parquet
+    ├── ASWDIFD_S.parquet
+    └── dwd_history.json
+```
+
+`u10` and `v10` contain the wind components. `ASWDIR_S` and `ASWDIFD_S`
+contain direct and diffuse short-wave radiation. Every history records the
+delivery date, issue date, run hour, valid timestamp, and spatial cluster
+values. `dwd_history.json` records and validates the history coverage.
+
+Prepare tomorrow's weather data independently before model execution:
 
 ```powershell
-python run_pipeline --check-setup
-python run_pipeline --dry-run
+python .\prepare_dwd_data.py
 ```
+
+The preparation script performs the following steps:
+
+1. download or locate only the four required ICON-D2 variables for the 06 UTC
+   run;
+2. validate the ZIP, BZip2, and GRIB content;
+3. retry failed or incomplete downloads;
+4. preprocess all required fields for `C=1,5,25`;
+5. deduplicate repeated valid timestamps;
+6. append or replace the target delivery day in each Parquet history;
+7. verify all twelve updated histories; and
+8. delete the consumed raw data only after successful validation.
+
+The default Fundamental/SQRA system needs approximately 116 preceding delivery
+days for its first complete run: 56 days for LEAR plus 60 days for SQRA. After
+that bootstrap, one new weather day is appended on every operational day.
+
+### Running the complete daily pipeline
+
+The default configuration follows the paper's selected operational setup:
+
+- point forecast: Fundamental LEAR with ICON-D2, `D_LEAR=56`, and `C=5`;
+- SQRA inputs: the matching Fundamental point forecasts for `C=1,5,25`;
+- probabilistic forecast: one pooled SQRA fit per requested quantile using the
+  preceding 60 delivery days and all valid MTUs;
+- submissions: the `C=5` point forecast and the combined SQRA quantiles.
 
 Run the complete workflow and submit both forecasts:
 
 ```powershell
-python run_pipeline
+python run_pipeline.py
 ```
 
-Use `--no-submit` for a complete local run that saves and validates both JSON
-payloads but does not call the submission endpoint:
+The runner then:
+
+1. resolves and validates the current DE-LU Energy Arena point and quantile
+   challenges;
+2. verifies that the consolidated ICON-D2 histories contain the target day,
+   invoking the DWD preparation step if necessary;
+3. updates the ENTSO-E price/load caches and, when required, the EXAA cache;
+4. fits any missing rolling LEAR point forecasts and updates their histories;
+5. fits the target-day SQRA models and generates non-crossing quantiles;
+6. creates DST-aware Energy Arena payloads with 92, 96, or 100 physical MTUs;
+   and
+7. submits the point and quantile payloads with `ENERGY_ARENA_API_KEY`.
+
+Generate and validate everything without submitting:
 
 ```powershell
-python run_pipeline --no-submit
+python run_pipeline.py --no-submit
 ```
 
-After the daily submission cutoff, Energy Arena may already advertise the day
-after tomorrow as its next target. To test tomorrow's complete forecast locally,
-shift that live target back by one delivery day:
+After the live cutoff, Energy Arena may already advertise the day after
+tomorrow. For a local test only, shift that target back by one delivery day:
 
 ```powershell
-python run_pipeline --no-submit --d-1
+python run_pipeline.py --no-submit --d-1
 ```
 
-`--d-1` is deliberately restricted to `--no-submit`. It affects DWD download,
-preprocessing, point forecasts, SQRA, and the locally saved payloads consistently;
-it never posts the back-shifted payloads to Energy Arena.
+`--d-1` is intentionally restricted to `--no-submit`.
 
-For the EXAA-only account/model variant, the submitted point forecast uses
-`D=364`, while SQRA combines the `D=56`, `D=112`, and `D=364` EXAA-only point
-forecasts:
+### Operational model variants
+
+Select the model on the command line or through `.env`:
 
 ```powershell
-python run_pipeline --exaa_only --arena-profile exaa_only
-python run_pipeline --exaa_only --energy-arena YOUR_OTHER_ACCOUNT_API_KEY
+# Default ICON-D2 Fundamental model
+python run_pipeline.py --fundamental
+
+# ICON-D2 Fundamental model enriched with EXAA prices
+python run_pipeline.py --exaa-enriched
+
+# EXAA-only model without weather or load features
+python run_pipeline.py --exaa-only
 ```
 
-The profile form reads `ENERGY_ARENA_API_KEY_EXAA_ONLY` from `.env`. The raw
-key override is convenient for a one-off run, but command-line values can be
-visible in terminal history. `--exaa-enriched` selects the DWD EXAA-enriched
-configuration. `--cluster 1|5|25` changes the point model submitted for an
-explicit non-default run; weather-based SQRA still generates all three
-cluster members.
+The EXAA-Only point submission uses `D_LEAR=364`; its SQRA forecast combines
+the `D_LEAR={56,112,364}` EXAA-Only point models. For weather-based variants,
+`--cluster 1|5|25` selects the point forecast submitted to Energy Arena, while
+SQRA still generates and combines all three cluster resolutions.
 
-Fundamental and EXAA-only runs may overlap when they use different Arena
-profiles. Pipeline locks are scoped to the LEAR/SQRA histories and Arena
-payload namespace actually being updated, while each shared ENTSO-E/EXAA
-cache has its own inter-process lock. A second process therefore waits for a
-short cache update without blocking the independent model fitting. Runs which
-would write the same model history or the same Arena account remain blocked.
-The lock files below `OPERATIONAL_OUTPUT_ROOT/locks` are persistent OS-lock
-handles; their presence alone does not mean that a process is still active.
+The equivalent `.env` settings are:
 
-A practical local-time daily sequence is to run `prepare_dwd_data.py` around
-10:00, start the Fundamental pipeline once the target-day ENTSO-E load forecast
-is available (for example 10:30), and start EXAA-only after the 10:15 EXAA
-auction results are visible (for example 11:15). Availability checks and the
-live Energy Arena deadline returned by the API remain authoritative.
+```dotenv
+POINT_FORECAST_VARIANT=fundamental
+POINT_WEATHER_CLUSTERS=5
+SQRA_FORECAST_VARIANT=auto
+SQRA_TRAIN_DAYS=60
+SQRA_MTU_SPECIFIC=false
+```
+A practical local-time schedule is:
 
-The daily runner performs these operations in order:
+- approximately 10:00: `prepare_dwd_data.py`;
+- approximately 10:30: Fundamental `run_pipeline.py`;
+- approximately 11:15: `run_pipeline.py --exaa-only`.
 
-1. resolve and validate the live DE-LU point and quantile challenges;
-2. ensure the separate DWD preparation step has updated the consolidated
-   C=1,5,25 histories (running it inline only when still necessary);
-3. load the prepared `u_10m`, `v_10m`, `aswdir_s`, and `aswdifd_s` histories;
-4. extend the ENTSO-E price/load and optional EXAA caches;
-5. fit missing rolling LEAR point forecasts and persist their history;
-6. fit target-day SQRA quantiles, construct DST-aware payloads, and submit.
+## Paper experimental analysis
 
-Operational downloads are staged under `DWD_OPERATIONAL_RAW_ROOT` (by default
-`data/dwd_raw`). `DOWNLOAD_DWD=false` means that the current raw GRIB files are
-already present there; integrity verification and preprocessing still run.
-`DWD_RAW_ARCHIVE` remains the separate source for historical preprocessing.
-Both the legacy
-`dwd_icon_daily_YYYYMMDD/icon-d2/HH/VARIABLE/*.grib2.bz2` layout and the newer
-`dwd_icon_archived_YYYYMMDD/icon-d2__HH__VARIABLE.zip` layout are accepted.
-ZIP sets placed directly inside a `dwd_icon_daily_YYYYMMDD` folder are also
-accepted, matching the transitional archive layout.
-New downloads are written in the latter layout and contain the 49 required
-regular-lat-lon files for each of the four LEAR weather variables. Downloads
-and ZIP files are written atomically, every nested BZip2 stream is fully
-decompressed to verify its CRC and GRIB signature, and failed downloads are
-retried according to the `.env` retry settings. With
-`DELETE_DWD_RAW_AFTER_PREPROCESS=true`, the operational raw ZIPs are deleted
-only after all requested consolidated cluster histories have been updated and
-successfully verified.
+The historical paper workflow is intentionally separate from the daily
+operational pipeline. `run_full_experiment.py` performs the expensive point and
+SQRA backtests. `run_full_evaluation.py` reads those completed forecasts and
+runs the cheaper evaluation, table, and figure stages.
 
-If ENTSO-E leaves a historical EPEX delivery day unpublished, the operational
-pipeline retains that day as missing after attempting a refresh. The missing
-day is excluded from LEAR and SQRA calibration targets. For an operational
-forecast affected by an unavailable EPEX lag, only the unavailable price-lag
-columns are suppressed for that rolling fit; all available weather, load,
-calendar, EXAA, and other price-lag inputs continue to be used. Missing
-non-price inputs remain fatal rather than being silently discarded.
+### Experimental data
 
-Operational market caches are stored under `OPERATIONAL_MARKET_DATA_ROOT`
-(default `data/market`): ENTSO-E prices and load forecasts are written below
-`data/market/entsoe`, and EXAA prices below `data/market/exaa`. Each pipeline
-run verifies the complete interval required by its rolling models and fetches
-the smallest date span covering missing or newly required timestamps instead
-of downloading the complete calibration history again. ENTSO-E prices are
-always maintained; load forecasts are maintained for weather-based models;
-EXAA is maintained when the selected point/SQRA model uses it or when
-`DOWNLOAD_EXAA=true`. The three cache directories can be overridden separately
-with `OPERATIONAL_ENTSOE_PRICE_CACHE_DIR`,
-`OPERATIONAL_ENTSOE_LOAD_CACHE_DIR`, and `OPERATIONAL_EXAA_CACHE_DIR`.
+The paper analysis uses:
 
-For a first weather-based run, the consolidated histories must cover the
-60-day SQRA window plus the 56-day LEAR window (about 116 preceding delivery
-days). `prepare_dwd_data.py` bootstraps them from existing processed daily
-outputs; otherwise sufficient historical raw runs are required. Existing 09
-UTC histories may seed calibration, while new operational targets use 06 UTC.
-Subsequent daily runs append one delivery day and reuse persisted forecasts.
+- ENTSO-E DE-LU day-ahead prices and load forecasts;
+- EXAA prices from ENTSO-E sequence 2;
+- historical DWD ICON-D2 forecasts;
+- ERA5 reanalysis fields; and
+- the spatial cluster and map files under `data/`.
 
-The operational format contains four appendable histories directly in every
-cluster directory:
+Market inputs are downloaded into the configured paper caches when required
+coverage is missing. ERA5 and historical ICON-D2 inputs cannot be reconstructed
+by the experiment runner and must be supplied or preprocessed first.
 
-```text
-ICON_DATA_ROOT/
-  c1/{u10,v10,ASWDIR_S,ASWDIFD_S}.parquet
-  c5/{u10,v10,ASWDIR_S,ASWDIFD_S}.parquet
-  c25/{u10,v10,ASWDIR_S,ASWDIFD_S}.parquet
+Expected paths are configured in `.env`:
+
+```dotenv
+ERA5_RAW_ARCHIVE=/path/to/raw/ERA5
+ERA5_DATA_ROOT=data/era5
+DWD_RAW_ARCHIVE=/path/to/raw/ICON-D2
+ICON_DATA_ROOT=data/icon
+
+MARKET_DATA_CACHE_DIR=data/cache/entsoe
+ENTSOE_DE_LU_CACHE_DIR=data/cache/entsoe
+EXAA_CACHE_DIR=data/cache/entsoe
+ENTSOE_LOAD_FORECAST_CACHE_DIR=data/cache/entsoe
+
+RESULTS_ROOT=results_extended_2025-12-01_2026-07-31
+OUTPUT_ROOT=output_extended_2025-12-01_2026-07-31
 ```
 
-Each row records the delivery date, ICON issue date, run hour, timestamp, and
-cluster values. Existing daily CSV, XLSX, and `icon_d2_aggregated.parquet`
-folders are used to bootstrap these histories without GRIB reprocessing. The
-forecast loaders prefer the consolidated format once its manifest is complete.
-
-The weather preparation can be scheduled before the main pipeline:
-
-```powershell
-python .\prepare_dwd_data.py --target-date 2026-09-17
-```
-
-With no target date it prepares tomorrow. It downloads or validates only the
-preceding 06 UTC ICON-D2 run and the four required variables, aggregates C=1,
-5, and 25, appends/replaces that delivery day, and verifies all histories.
-After successful verification it removes only the consumed raw 06 UTC inputs;
-use `--keep-raw` to retain them. The later `run_pipeline` call sees the complete
-histories and skips weather preparation. To build histories only from existing
-processed data, run:
-
-```powershell
-python .\prepare_dwd_data.py --migrate-only
-```
-
-Payloads, submission receipts, and logs are stored below
-`OPERATIONAL_OUTPUT_ROOT`. Each account/challenge retains only
-`payloads/<account>/<challenge>/latest.json` and
-`submissions/<account>/<challenge>/latest.json`; both are replaced by the next
-daily run. Logs are likewise replace-on-each-run files named `fundamental.log`,
-`exaa_enriched.log`, or `exaa_only.log`. An identical immediate rerun is not
-posted twice unless `--force-submit` is used. Point/SQRA forecast histories are
-stored below `OPERATIONAL_RESULTS_ROOT` using the same result layout as the
-paper pipeline.
-
-## Historical weather preprocessing
-
-Inspect the automatically derived plan without writing data:
-
-```powershell
-python .\preprocessing\preprocess_historic.py --dry-run
-```
-
-With no source flag, both sources and clusters 1, 5, and 25 are processed.
-They can also be selected explicitly:
+### Historical weather preprocessing
 
 ```powershell
 python .\preprocessing\preprocess_historic.py --icon
 python .\preprocessing\preprocess_historic.py --era5 --clusters 1,5,25
 ```
 
-To recreate one or several ICON raw-folder dates without scanning every daily
-folder, use `--date` together with `--force`:
+### Experiment configuration
 
-```powershell
-python .\preprocessing\preprocess_historic.py --icon --date 2026-06-12 2026-06-18 --clusters 1,5,25 --force
-```
-
-Each date selects its `dwd_icon_daily_YYYYMMDD` source (nested files or a ZIP
-set) or its `dwd_icon_archived_YYYYMMDD` ZIP set. These are ICON initialization
-dates, not the following delivery dates.
-
-ERA5 years and the required weather history are derived from the evaluation
-dates in `.env`. Existing complete outputs are reused unless `--force` is
-specified.
-
-## Full paper rerun
-
-The evaluation horizon and calibration behavior have one source of truth:
+The evaluation horizon and rolling calibration share one configuration:
 
 ```dotenv
-EVALUATION_START_DATE=2025-12-01
-EVALUATION_END_DATE=2026-07-31
-EVALUATION_SKIP_DATES=2026-01-22,2026-06-12
-FORECAST_SKIP_DATES=2026-01-22,2026-06-12
+EVALUATION_START_DATE=
+EVALUATION_END_DATE=
+EVALUATION_SKIP_DATES=
+FORECAST_SKIP_DATES=
 SQRA_TRAIN_DAYS=60
 SQRA_MTU_SPECIFIC=false
 LEAR_USE_VST=true
+MAX_LEAR_TRAIN_DAYS=364
 ```
 
-Forecast result schema version 2 uses the explicit index
-`(delivery_date, mtu)`, where every retained delivery day has MTUs 1 through
-96. This implements the manuscript's DST normalization: the four missing MTUs
-on a 23-hour spring day are interpolated, and repeated MTUs on a 25-hour autumn
-day are averaged. Consequently, 29 March 2026 is included in the evaluation.
-The two remaining skip dates lack usable common ICON-D2 inputs. Legacy
-timestamp-indexed forecasts are not resumed and must be regenerated.
+### Point-forecast experiments
 
-### Point-forecast runs
-
-With no source selector, the forecast runner processes all 28 point forecasts
-(27 fitted LEAR configurations plus EXAA-naive). It does not automatically
-continue into SQRA, evaluation, or plots:
+With no selector, the runner creates all 28 point forecasts: 27 fitted LEAR
+configurations and the EXAA-naive benchmark. It does not continue into SQRA or
+evaluation automatically:
 
 ```powershell
-python .\run_full_experiment.py --dry-run
-python .\run_full_experiment.py --preflight
 python .\run_full_experiment.py
 ```
 
-Long point-forecast computation can be split into independent batches:
+The expensive runs can be split into independent batches:
 
 ```powershell
 python .\run_full_experiment.py --dwd
@@ -332,106 +374,61 @@ python .\run_full_experiment.py --era5 --d 112
 python .\run_full_experiment.py --era5 --d 364
 ```
 
-`--dwd` selects all six DWD/ICON-D2 point models. `--exaa` selects the three
-EXAA-only LEAR models and EXAA-naive. `--era5` selects all 18 ERA5 point
-models; `--d` restricts fitted models to one of the configured training
-windows 56, 112, or 364. Source flags can be combined. With no source flag,
-`--d` filters the otherwise complete point-model selection. EXAA-naive remains
-part of an EXAA batch because it has no fitted training-window parameter.
+- `--dwd` selects the six ICON-D2 point models.
+- `--exaa` selects the three EXAA-Only LEAR models and EXAA-naive.
+- `--era5` selects the 18 ERA5 models.
+- `--d 56|112|364` restricts the LEAR calibration window.
+- `--force` recomputes only the selected batch; otherwise complete outputs are
+  resumed.
 
-Complete selected point results are resumed. Use `--force` to deliberately
-recompute only the selected batch.
+### SQRA experiments
 
-Long weather batches can be split further by cluster and model variant. For
-example, the six ERA5 D=364 configurations can be run one at a time:
-
-```powershell
-python .\run_full_experiment.py --era5 --d 364 --cluster 1  --fundamental true
-python .\run_full_experiment.py --era5 --d 364 --cluster 1  --fundamental false
-python .\run_full_experiment.py --era5 --d 364 --cluster 5  --fundamental true
-python .\run_full_experiment.py --era5 --d 364 --cluster 5  --fundamental false
-python .\run_full_experiment.py --era5 --d 364 --cluster 25 --fundamental true
-python .\run_full_experiment.py --era5 --d 364 --cluster 25 --fundamental false
-```
-
-`--fundamental true` selects the fundamental model and `false` selects the
-EXAA-enriched model. If `--fundamental` is omitted, both variants for the
-selected cluster are run. The cluster and variant filters also work with DWD,
-and require an explicit `--era5` or `--dwd` source.
-
-### SQRA runs
-
-After the required point forecasts exist, validate and run all six SQRA
-configurations separately:
+After the required point forecasts exist:
 
 ```powershell
 python .\evaluation\check_point_forecast_coverage.py --show-ok
-python .\run_full_experiment.py --sqra --preflight
 python .\run_full_experiment.py --sqra
 ```
 
-The coverage checker inspects all 28 point outputs and reports missing files,
-entirely missing delivery days, partial 96-MTU days, extra dates, and whether a
-gap affects the configured evaluation period. Configured skip dates are not
-reported as missing.
+`--sqra` by itself runs no point models. The coverage checker reports missing
+files, missing delivery days, partial 96-MTU days, extra dates, and whether a
+gap affects the evaluation period.
 
-`--sqra` by itself runs no point models. It can also be combined with source
-flags to run the selected point batch first and SQRA second, provided all
-other SQRA member forecasts already exist.
+The six SQRA configurations use:
 
-The six SQRA configurations use these point-forecast members:
-
-- ERA5 Fundamental: `d364/c1`, `d364/c5`, and `d364/c25`.
-- ICON-D2 Fundamental: `d56/c1`, `d56/c5`, and `d56/c25`.
-- ERA5 EXAA-Enriched: `d364/c1`, `d364/c5`, and `d364/c25`.
-- ICON-D2 EXAA-Enriched: `d56/c1`, `d56/c5`, and `d56/c25`.
-- EXAA-Only: `d56`, `d112`, and `d364`.
+- ERA5 Fundamental: `D_LEAR=364`, `C={1,5,25}`;
+- ICON-D2 Fundamental: `D_LEAR=56`, `C={1,5,25}`;
+- ERA5 EXAA-Enriched: `D_LEAR=364`, `C={1,5,25}`;
+- ICON-D2 EXAA-Enriched: `D_LEAR=56`, `C={1,5,25}`;
+- EXAA-Only: `D_LEAR={56,112,364}`; and
 - EXAA-Naive: the raw EXAA point forecast.
 
-Their existing configuration names and `RESULTS_ROOT/sqra_results/<name>`
-output directories are preserved when SQRA is rerun.
 
-### Evaluation and figures
+### Evaluation, tables, and figures
 
-Once all 28 point forecasts and six SQRA forecasts exist, use the independent
-post-processing runner:
+Once all point and SQRA forecasts exist, run the independent post-processing
+pipeline:
 
 ```powershell
-python .\run_full_evaluation.py --preflight
 python .\run_full_evaluation.py
 ```
 
-It runs evaluation first and then the manuscript tables and figures. These can
-also be selected individually:
+The evaluation stage calculates point and probabilistic metrics, Kupiec tests,
+and Giacomini-White tests. It also appends or refreshes the
+`period=evaluation` row in every point model's `metrics.csv` without refitting a
+model. The plotting stage generates the configured manuscript tables and
+figures using the completed result files.
 
-```powershell
-python .\run_full_evaluation.py --stages evaluation
-python .\run_full_evaluation.py --stages plots
-```
-
-During the evaluation stage, the already-generated point forecast files are
-used to append or refresh a final `period=evaluation` row in each point
-model's `metrics.csv`. This covers only the configured evaluation dates and
-skip dates and does not refit any forecasting model.
-
-ANC remains optional because it is memory-intensive. When requested, its two
-variants run before evaluation and plots:
+Absolute Normalized Contribution calculations are optional because they are
+memory-intensive:
 
 ```powershell
 python .\run_full_evaluation.py --anc
 ```
 
-Every executed subprocess streams to the terminal and to:
+### Additional analyses and direct entry points
 
-```text
-OUTPUT_ROOT/logs/<stage>/<configuration>.log
-```
-
-No executed notebook copies are produced.
-
-## Direct Python entry points
-
-Each computational stage can also be run independently:
+Computational stages and supplemental analyses can also be run directly:
 
 ```powershell
 python -m pipeline.lear.run_lear exaa-naive
@@ -444,48 +441,20 @@ python .\evaluation\export_sqra_evaluation_metrics.py
 python .\evaluation\export_sqra_kupiec_excel.py
 python .\evaluation\plot_monthly_point_mae.py
 python .\visualization\plot_exaa_epex_correlation.py
+python .\visualization\plot_cluster_heatmap.py
 ```
 
-The notebooks import these same modules and contain no separate model or
-evaluation implementation.
-
-`evaluation.run_benchmarks` is independent of the full experiment and main
-evaluation registry. It creates the d-1 and d-7 persistence point forecasts
-and their two SQRA post-processed variants under
-`RESULTS_ROOT/benchmarks/`. Each of the four folders contains `forecast.csv`,
-`runtime.csv`, `metrics.csv`, and `config.json`.
-
-The SQRA metrics exporter reads all six probabilistic forecast outputs and
-writes evaluation-period median MAE, median RMSE, and APS to
-`OUTPUT_ROOT/sqra_evaluation_metrics.xlsx`. The workbook also records the
-evaluation dates, excluded delivery dates, quantiles, and metric definitions.
-
-The SQRA Kupiec exporter recreates the four raw MTU-count columns underlying
-manuscript Table D.5 (50% and 80% prediction intervals, each at the 1% and 5%
-significance levels). It saves the six configurations and calculation metadata
-to `OUTPUT_ROOT/sqra_kupiec_mtu_counts.xlsx`.
-
-The monthly point-forecast MAE script compares four representative models
-from December 2025 through July 2026. It prints the monthly values and saves
-`monthly_point_forecast_mae.csv` and `monthly_point_forecast_mae.pdf` under
-`OUTPUT_ROOT`. Each monthly value is the MAE pooled across all included
-15-minute MTUs in that calendar month; configured evaluation skip dates are
-excluded. The same script also counts all physical EPEX DE-LU quarter-hours
-with prices below zero and saves `monthly_epex_negative_price_mtus.csv` and
-`monthly_epex_negative_price_mtus.pdf`. This market count includes every
-available delivery interval, including the spring daylight-saving day.
-
-The price-correlation script matches EXAA and EPEX DE-LU prices by local
-delivery date and 15-minute MTU over the configured evaluation period. It
-prints and saves Pearson and Spearman results for all days, Tuesday–Saturday,
-Sunday, Monday, and MTUs for which the EPEX price is below zero. Its outputs are
-`exaa_epex_price_correlations.csv` and
-`exaa_epex_price_correlations.pdf` under `OUTPUT_ROOT`.
+The benchmark runner creates persistence `d-1` and `d-7` point forecasts and
+their SQRA post-processed variants below `RESULTS_ROOT/benchmarks`. The two
+Excel exporters provide the SQRA evaluation metrics and raw Kupiec MTU counts.
+The monthly script creates the point-model monthly MAE and monthly negative
+EPEX-price figures. The correlation script reports Pearson and Spearman EXAA–
+EPEX correlations for the configured delivery-day groups.
 
 ## Tests
 
 Run the synthetic parity, schema, validation, and orchestration tests from the
-activated `forecast` environment:
+activated environment:
 
 ```powershell
 python -m unittest discover -s tests -v

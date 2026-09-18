@@ -49,7 +49,6 @@ from pipeline.operational.prepare_dwd import prepare_target_dwd
 from pipeline.operational.locking import interprocess_lock
 from pipeline.operational.energy_arena import (
     ArenaTargets,
-    account_fingerprint,
     atomic_write_json,
     build_point_payload,
     build_quantile_payload,
@@ -75,41 +74,12 @@ class _Tee:
             stream.flush()
 
 
-def _safe_profile_name(value: str) -> str:
-    return "".join(char if char.isalnum() else "_" for char in value.upper())
-
-
 def _redacted_command(arguments: Sequence[str]) -> str:
-    values = list(arguments)
-    secret_flags = {"--energy-arena", "--energy-arena-api-key"}
-    for index, value in enumerate(values):
-        matching_prefix = next(
-            (flag for flag in secret_flags if value.startswith(f"{flag}=")),
-            None,
-        )
-        if matching_prefix is not None:
-            values[index] = f"{matching_prefix}=<redacted>"
-            continue
-        if value in secret_flags:
-            if index + 1 < len(values):
-                values[index + 1] = "<redacted>"
-    return " ".join([sys.executable, str(Path(sys.argv[0]).name), *values])
-
-
-def resolve_arena_key(profile: str, explicit_key: str) -> tuple[str, str]:
-    if explicit_key:
-        return explicit_key.strip(), ""
-    if profile:
-        name = f"ENERGY_ARENA_API_KEY_{_safe_profile_name(profile)}"
-        value = os.getenv(name, "").strip()
-        if not value:
-            raise ValueError(f"Energy Arena profile {profile!r} requires {name} in .env.")
-        return value, profile
-    value = (
-        os.getenv("ENERGY_ARENA_API_KEY", "").strip()
-        or os.getenv("ARENA_API_KEY", "").strip()
+    # Secrets are read exclusively from .env and therefore never appear in the
+    # command line that is persisted in the operational log.
+    return " ".join(
+        [sys.executable, str(Path(sys.argv[0]).name), *arguments]
     )
-    return value, "default"
 
 
 def _point_name(variant: str, clusters: int) -> str:
@@ -159,25 +129,38 @@ def _lock_token(value: str) -> str:
     )
 
 
-def pipeline_lock_paths(
-    config: OperationalConfig, account: str
-) -> tuple[Path, ...]:
+def pipeline_lock_paths(config: OperationalConfig) -> tuple[Path, ...]:
     """Return locks for exactly the outputs touched by one pipeline plan.
 
-    Different model families and different Arena accounts may therefore run in
-    parallel. Runs which would update the same LEAR/SQRA history or payload
-    namespace remain mutually exclusive.
+    Different model families may therefore train in parallel. Runs which would
+    update the same LEAR/SQRA history remain mutually exclusive. The common
+    Energy Arena account is locked separately only during submission.
     """
     runs, _, sqra_name, _ = resolve_model_plan(config)
     resources = {
         *(f"lear_{run.name}" for run in runs),
         f"sqra_{sqra_name}",
-        f"arena_{account}",
     }
     lock_root = config.output_root / "locks"
     return tuple(
         lock_root / f"{_lock_token(resource)}.lock"
         for resource in sorted(resources)
+    )
+
+
+def arena_lock_path(config: OperationalConfig) -> Path:
+    """Return the single submission lock for the configured Arena account."""
+    return config.output_root / "locks" / "arena_default.lock"
+
+
+def _submission_stream(config: OperationalConfig) -> str:
+    """Name the stable local artifacts for one information-cutoff stream."""
+    # Preserve the existing Fundamental output paths while keeping the later
+    # EXAA submission's local payload and receipt separate.
+    return (
+        "default"
+        if config.point_variant == "fundamental"
+        else config.point_variant
     )
 
 
@@ -675,14 +658,20 @@ def run_sqra_model(
 
 def _payload_path(
     config: OperationalConfig,
-    account: str,
+    submission_stream: str,
     challenge_id: str,
     target_start: datetime,
 ) -> Path:
     # Keep the target in the interface alongside the challenge metadata, while
-    # retaining only the latest validated payload for each account/challenge.
+    # retaining only the latest validated payload for each model stream/challenge.
     del target_start
-    return config.output_root / "payloads" / account / challenge_id / "latest.json"
+    return (
+        config.output_root
+        / "payloads"
+        / submission_stream
+        / challenge_id
+        / "latest.json"
+    )
 
 
 def _required_input_start(
@@ -708,8 +697,6 @@ def execute_pipeline(
     config: OperationalConfig,
     targets: ArenaTargets,
     *,
-    arena_api_key: str,
-    arena_profile: str,
     submit: bool,
     force_download: bool = False,
     force_forecast: bool = False,
@@ -771,12 +758,18 @@ def execute_pipeline(
     )
     point_payload = build_point_payload(forecasts[point_run.name], targets.point)
     quantile_payload = build_quantile_payload(sqra, targets.quantile)
-    account = account_fingerprint(arena_api_key, arena_profile)
+    submission_stream = _submission_stream(config)
     point_payload_path = _payload_path(
-        config, account, targets.point.challenge_id, targets.point.target_start
+        config,
+        submission_stream,
+        targets.point.challenge_id,
+        targets.point.target_start,
     )
     quantile_payload_path = _payload_path(
-        config, account, targets.quantile.challenge_id, targets.quantile.target_start
+        config,
+        submission_stream,
+        targets.quantile.challenge_id,
+        targets.quantile.target_start,
     )
     atomic_write_json(point_payload_path, point_payload)
     atomic_write_json(quantile_payload_path, quantile_payload)
@@ -785,28 +778,37 @@ def execute_pipeline(
 
     submissions: dict[str, object] = {}
     if submit:
-        now = datetime.now().astimezone(targets.point.deadline.tzinfo)
-        deadline = min(targets.point.deadline, targets.quantile.deadline)
-        if now > deadline:
-            raise RuntimeError(f"Energy Arena deadline has passed: {deadline.isoformat()}")
-        for label, challenge, payload in (
-            ("point", targets.point, point_payload),
-            ("quantile", targets.quantile, quantile_payload),
+        # Model fitting may overlap across information-cutoff streams. Only
+        # the short write-to-one-account section is serialized.
+        with interprocess_lock(
+            arena_lock_path(config),
+            timeout_seconds=15 * 60,
+            description="Energy Arena submission account",
         ):
-            record_path = submission_record_path(
-                config.output_root,
-                account,
-                challenge.challenge_id,
-                challenge.target_start,
-            )
-            submissions[label] = submit_with_record(
-                api_base=config.arena_api_base_url,
-                api_key=arena_api_key,
-                payload=payload,
-                record_path=record_path,
-                force=force_submit,
-            )
-            print(f"Energy Arena {label}: {submissions[label]}")
+            now = datetime.now().astimezone(targets.point.deadline.tzinfo)
+            deadline = min(targets.point.deadline, targets.quantile.deadline)
+            if now > deadline:
+                raise RuntimeError(
+                    f"Energy Arena deadline has passed: {deadline.isoformat()}"
+                )
+            for label, challenge, payload in (
+                ("point", targets.point, point_payload),
+                ("quantile", targets.quantile, quantile_payload),
+            ):
+                record_path = submission_record_path(
+                    config.output_root,
+                    submission_stream,
+                    challenge.challenge_id,
+                    challenge.target_start,
+                )
+                submissions[label] = submit_with_record(
+                    api_base=config.arena_api_base_url,
+                    api_key=config.arena_api_key,
+                    payload=payload,
+                    record_path=record_path,
+                    force=force_submit,
+                )
+                print(f"Energy Arena {label}: {submissions[label]}")
     else:
         print("Submission disabled; validated payloads were saved locally.")
     return {
@@ -827,14 +829,6 @@ def build_parser() -> argparse.ArgumentParser:
     variants.add_argument("--exaa-enriched", "--exaa_enriched", action="store_true")
     variants.add_argument("--fundamental", action="store_true")
     parser.add_argument("--cluster", type=int, choices=(1, 5, 25))
-    parser.add_argument("--arena-profile", default="")
-    parser.add_argument(
-        "--energy-arena-api-key",
-        "--energy-arena",
-        dest="arena_api_key",
-        default="",
-        help="Explicit Arena key override (profiles are safer).",
-    )
     target_overrides = parser.add_mutually_exclusive_group()
     target_overrides.add_argument("--target-date", type=date.fromisoformat)
     target_overrides.add_argument(
@@ -873,15 +867,14 @@ def _apply_cli(config: OperationalConfig, args: argparse.Namespace) -> Operation
 
 def _check_setup(
     config: OperationalConfig,
-    arena_key: str,
     *,
     submission_requested: bool,
 ) -> list[str]:
     errors: list[str] = []
     if not config.entsoe_api_key or config.entsoe_api_key == "your_api_key_here":
         errors.append("ENTSOE_API_KEY is missing.")
-    if submission_requested and not arena_key:
-        errors.append("Energy Arena API key is missing.")
+    if submission_requested and not config.arena_api_key:
+        errors.append("ENERGY_ARENA_API_KEY is missing.")
     if config.needs_dwd:
         for clusters in config.required_dwd_clusters:
             cluster_file = (
@@ -907,11 +900,9 @@ def main(argv: Optional[Sequence[str]] = None, repo_root: Optional[Path] = None)
         parser.error("--d-1 is a testing override and requires --no-submit")
     root = (repo_root or Path(__file__).resolve().parents[2]).resolve()
     config = _apply_cli(load_operational_config(root), args)
-    arena_key, profile = resolve_arena_key(args.arena_profile, args.arena_api_key)
     submission_requested = config.submit_to_arena and not args.no_submit
     errors = _check_setup(
         config,
-        arena_key,
         submission_requested=submission_requested,
     )
     if errors:
@@ -924,7 +915,7 @@ def main(argv: Optional[Sequence[str]] = None, repo_root: Optional[Path] = None)
         api_base=config.arena_api_base_url,
         point_challenge_id=config.arena_point_challenge_id,
         quantile_challenge_id=config.arena_quantile_challenge_id,
-        api_key=arena_key,
+        api_key=config.arena_api_key,
         requested_target_date=args.target_date,
         target_date_offset_days=-1 if args.delivery_day_minus_one else 0,
     )
@@ -948,9 +939,8 @@ def main(argv: Optional[Sequence[str]] = None, repo_root: Optional[Path] = None)
         print(f"Submit: {submission_requested}")
         return 0
 
-    account = account_fingerprint(arena_key, profile)
     with ExitStack() as locks:
-        for lock_path in pipeline_lock_paths(config, account):
+        for lock_path in pipeline_lock_paths(config):
             locks.enter_context(
                 interprocess_lock(
                     lock_path,
@@ -972,8 +962,6 @@ def main(argv: Optional[Sequence[str]] = None, repo_root: Optional[Path] = None)
                 summary = execute_pipeline(
                     config,
                     targets,
-                    arena_api_key=arena_key,
-                    arena_profile=profile,
                     submit=submission_requested,
                     force_download=args.force_download,
                     force_forecast=args.force_forecast,

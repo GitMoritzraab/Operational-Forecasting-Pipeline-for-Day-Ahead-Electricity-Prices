@@ -44,6 +44,7 @@ class OperationalConfig:
     repo_root: Path
     timezone: str
     entsoe_api_key: str
+    arena_api_key: str
     arena_api_base_url: str
     arena_point_challenge_id: str
     arena_quantile_challenge_id: str
@@ -143,6 +144,7 @@ def load_operational_config(repo_root: Path | str | None = None) -> OperationalC
         repo_root=root,
         timezone=os.getenv("TARGET_TIMEZONE", "Europe/Berlin").strip(),
         entsoe_api_key=os.getenv("ENTSOE_API_KEY", "").strip(),
+        arena_api_key=os.getenv("ENERGY_ARENA_API_KEY", "").strip(),
         arena_api_base_url=os.getenv(
             "ENERGY_ARENA_API_BASE_URL", "https://api.energy-arena.org"
         ).strip().rstrip("/"),

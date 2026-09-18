@@ -254,12 +254,6 @@ def atomic_write_json(path: Path, value: dict[str, Any]) -> None:
         temporary_path.unlink(missing_ok=True)
 
 
-def account_fingerprint(api_key: str, profile: str) -> str:
-    if profile:
-        return "".join(c if c.isalnum() or c in "-_" else "_" for c in profile)
-    return f"key_{hashlib.sha256(api_key.encode('utf-8')).hexdigest()[:12]}"
-
-
 def submit_payload(
     *,
     api_base: str,
@@ -287,15 +281,22 @@ def submit_payload(
 
 def submission_record_path(
     output_root: Path,
-    account: str,
+    submission_stream: str,
     challenge_id: str,
     target_start: datetime,
 ) -> Path:
     # Keep ``target_start`` in the interface for consistency with payload path
     # construction. Receipts intentionally retain only the latest successful
-    # response for each account/challenge pair.
+    # response for each model stream/challenge pair. Energy Arena itself uses
+    # the submission timestamp to distinguish information-cutoff tracks.
     del target_start
-    return output_root / "submissions" / account / challenge_id / "latest.json"
+    return (
+        output_root
+        / "submissions"
+        / submission_stream
+        / challenge_id
+        / "latest.json"
+    )
 
 
 def already_submitted(record_path: Path, payload: dict[str, Any]) -> bool:

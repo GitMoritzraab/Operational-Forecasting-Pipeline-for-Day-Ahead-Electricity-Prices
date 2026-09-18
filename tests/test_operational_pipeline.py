@@ -27,12 +27,12 @@ from pipeline.operational.energy_arena import (
 )
 from pipeline.operational.runner import (
     _payload_path,
-    _redacted_command,
+    _submission_stream,
+    arena_lock_path,
     build_parser,
     main,
     pipeline_log_path,
     pipeline_lock_paths,
-    resolve_arena_key,
     resolve_model_plan,
     run_point_model,
     run_sqra_model,
@@ -77,6 +77,7 @@ def _config(root: Path, **overrides) -> OperationalConfig:
         "repo_root": root,
         "timezone": "Europe/Berlin",
         "entsoe_api_key": "entsoe-test",
+        "arena_api_key": "arena-test",
         "arena_api_base_url": "https://api.energy-arena.org",
         "arena_point_challenge_id": "2",
         "arena_quantile_challenge_id": "8",
@@ -202,18 +203,14 @@ class OperationalModelPlanTests(unittest.TestCase):
                 point_variant="exaa_only",
                 sqra_variant="exaa_only",
             )
-            fundamental_locks = set(
-                pipeline_lock_paths(fundamental, "default")
-            )
-            exaa_locks = set(
-                pipeline_lock_paths(exaa_only, "exaa_only")
-            )
+            fundamental_locks = set(pipeline_lock_paths(fundamental))
+            exaa_locks = set(pipeline_lock_paths(exaa_only))
 
         self.assertTrue(fundamental_locks)
         self.assertTrue(exaa_locks)
         self.assertTrue(fundamental_locks.isdisjoint(exaa_locks))
 
-    def test_same_arena_account_retains_a_shared_payload_lock(self):
+    def test_all_variants_share_one_short_lived_arena_submission_lock(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
             fundamental = _config(root)
@@ -222,16 +219,13 @@ class OperationalModelPlanTests(unittest.TestCase):
                 point_variant="exaa_only",
                 sqra_variant="exaa_only",
             )
-            fundamental_locks = set(
-                pipeline_lock_paths(fundamental, "default")
-            )
-            exaa_locks = set(
-                pipeline_lock_paths(exaa_only, "default")
-            )
+            fundamental_lock = arena_lock_path(fundamental)
+            exaa_lock = arena_lock_path(exaa_only)
 
+        self.assertEqual(fundamental_lock, exaa_lock)
         self.assertEqual(
-            fundamental_locks.intersection(exaa_locks),
-            {root / "output" / "locks" / "arena_default.lock"},
+            fundamental_lock,
+            root / "output" / "locks" / "arena_default.lock",
         )
 
     def test_each_model_variant_has_one_stable_log_path(self):
@@ -275,13 +269,25 @@ class OperationalModelPlanTests(unittest.TestCase):
             config.output_root / "payloads" / "default" / "2" / "latest.json",
         )
 
-    def test_cli_accepts_requested_exaa_and_arena_aliases(self):
-        args = build_parser().parse_args(
-            ["--exaa_only", "--energy-arena", "account-key", "--no-submit"]
-        )
+    def test_information_cutoffs_keep_separate_stable_local_streams(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            fundamental = _config(root)
+            exaa_only = _config(
+                root,
+                point_variant="exaa_only",
+                sqra_variant="exaa_only",
+            )
+
+        self.assertEqual(_submission_stream(fundamental), "default")
+        self.assertEqual(_submission_stream(exaa_only), "exaa_only")
+
+    def test_cli_accepts_requested_exaa_alias(self):
+        args = build_parser().parse_args(["--exaa_only", "--no-submit"])
         self.assertTrue(args.exaa_only)
-        self.assertEqual(args.arena_api_key, "account-key")
         self.assertTrue(args.no_submit)
+        self.assertFalse(hasattr(args, "arena_profile"))
+        self.assertFalse(hasattr(args, "arena_api_key"))
 
     def test_cli_accepts_safe_previous_delivery_day_override(self):
         args = build_parser().parse_args(["--no-submit", "--d-1"])
@@ -293,27 +299,16 @@ class OperationalModelPlanTests(unittest.TestCase):
             main(["--d-1"])
         self.assertEqual(error.exception.code, 2)
 
-    def test_named_arena_profile_does_not_expose_or_mix_keys(self):
-        with patch.dict(
-            "os.environ",
-            {"ENERGY_ARENA_API_KEY_EXAA_ONLY": "profile-key"},
-            clear=False,
-        ):
-            key, profile = resolve_arena_key("exaa-only", "")
-        self.assertEqual(key, "profile-key")
-        self.assertEqual(profile, "exaa-only")
-
-    def test_command_log_redacts_explicit_arena_key(self):
-        command = _redacted_command(
-            ["--exaa_only", "--energy-arena", "very-secret-key"]
-        )
-        self.assertNotIn("very-secret-key", command)
-        self.assertIn("--energy-arena <redacted>", command)
-        equals_command = _redacted_command(
-            ["--energy-arena-api-key=another-secret-key"]
-        )
-        self.assertNotIn("another-secret-key", equals_command)
-        self.assertIn("--energy-arena-api-key=<redacted>", equals_command)
+    def test_configuration_uses_only_the_primary_arena_key(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            (root / "data" / "clustering").mkdir(parents=True)
+            with patch.dict(
+                os.environ,
+                {"ENERGY_ARENA_API_KEY": "primary-key"},
+            ):
+                config = load_operational_config(root)
+        self.assertEqual(config.arena_api_key, "primary-key")
 
 
 class EnergyArenaPayloadTests(unittest.TestCase):
