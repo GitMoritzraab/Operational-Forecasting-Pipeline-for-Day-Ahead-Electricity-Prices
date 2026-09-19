@@ -1,48 +1,50 @@
-started_at=2026-09-18T11:34:13.367894+02:00
+started_at=2026-09-19T11:15:03.186563+02:00
 command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline.py --exaa-only
-Target: 2026-09-19T00:00:00+02:00
-Submitted point model: exaa_only_d364
+Target: 2026-09-20T00:00:00+02:00
+Submitted point forecast: SQRA exaa_only, q=0.500
+Reference LEAR point run: exaa_only_d364
 SQRA configuration: exaa_only
 Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
 Point runs: exaa_only_d56, exaa_only_d112, exaa_only_d364
-Updating prices_exaa.csv: 2026-09-19 through 2026-09-19
-Point forecast exaa_only_d56: 2026-07-21..2026-09-19
-  2026-09-19  LARS  9.7s
-Point forecast exaa_only_d112: 2026-07-21..2026-09-19
-  2026-09-19  LARS  19.3s
-Point forecast exaa_only_d364: 2026-07-21..2026-09-19
-  2026-09-19  LassoCV  9.8s
-2026-09-19
+Updating prices_exaa.csv: 2026-09-20 through 2026-09-20
+Point forecast exaa_only_d56: 2026-07-22..2026-09-20
+  2026-09-20  LARS  9.6s
+Point forecast exaa_only_d112: 2026-07-22..2026-09-20
+  2026-09-20  LARS  19.3s
+Point forecast exaa_only_d364: 2026-07-22..2026-09-20
+  2026-09-20  LassoCV  10.2s
+2026-09-20
 Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\2\latest.json
 Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\8\latest.json
-Energy Arena point: {'submission_id': 70714, 'submission_ids': [70714], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-18T09:35:01.371920Z'}
-Energy Arena quantile: {'submission_id': 70715, 'submission_ids': [70715], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-18T09:35:01.521925Z'}
+Energy Arena point: {'submission_id': 70932, 'submission_ids': [70932], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-19T09:15:56.895648Z'}
+Energy Arena quantile: {'submission_id': 70933, 'submission_ids': [70933], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-19T09:15:56.999452Z'}
 {
-  "target_start": "2026-09-19T00:00:00+02:00",
-  "point_model": "exaa_only_d364",
+  "target_start": "2026-09-20T00:00:00+02:00",
+  "point_model": "exaa_only:q0.500",
+  "reference_lear_model": "exaa_only_d364",
   "sqra_model": "exaa_only",
   "point_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\2\\latest.json",
   "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\8\\latest.json",
   "submissions": {
     "point": {
-      "submission_id": 70714,
+      "submission_id": 70932,
       "submission_ids": [
-        70714
+        70932
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-09-18T09:35:01.371920Z"
+      "submitted_at": "2026-09-19T09:15:56.895648Z"
     },
     "quantile": {
-      "submission_id": 70715,
+      "submission_id": 70933,
       "submission_ids": [
-        70715
+        70933
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-09-18T09:35:01.521925Z"
+      "submitted_at": "2026-09-19T09:15:56.999452Z"
     }
   }
 }
-completed_at=2026-09-18T11:35:01.546479+02:00
+completed_at=2026-09-19T11:15:57.023033+02:00
 status=success
