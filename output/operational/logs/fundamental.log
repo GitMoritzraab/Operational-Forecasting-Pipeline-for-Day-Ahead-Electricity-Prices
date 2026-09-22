@@ -1,30 +1,30 @@
-started_at=2026-09-21T10:30:02.759155+02:00
+started_at=2026-09-22T10:30:02.725073+02:00
 command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline.py --fundamental
-Target: 2026-09-22T00:00:00+02:00
+Target: 2026-09-23T00:00:00+02:00
 Submitted point forecast: SQRA dwd_fundamental, q=0.500
 Reference LEAR point run: dwd_d56_c5_fundamental
 SQRA configuration: dwd_fundamental
 Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
 Point runs: dwd_d56_c1_fundamental, dwd_d56_c5_fundamental, dwd_d56_c25_fundamental
-DWD histories ready for delivery 2026-09-22: C=1, C=5, C=25
-Updating prices_da.csv: 2026-09-21 through 2026-09-21
-Updating load_forecast.csv: 2026-09-22 through 2026-09-22
-Point forecast dwd_d56_c1_fundamental: 2026-07-24..2026-09-22
+DWD histories ready for delivery 2026-09-23: C=1, C=5, C=25
+Updating prices_da.csv: 2026-09-22 through 2026-09-22
+Updating load_forecast.csv: 2026-09-23 through 2026-09-23
+Point forecast dwd_d56_c1_fundamental: 2026-07-25..2026-09-23
 dwd_d56_c1_fundamental: incomplete feature days detected=1; operational price policy will be applied
-  2026-09-22  LARS  32.7s
-Point forecast dwd_d56_c5_fundamental: 2026-07-24..2026-09-22
+  2026-09-23  LARS  34.1s
+Point forecast dwd_d56_c5_fundamental: 2026-07-25..2026-09-23
 dwd_d56_c5_fundamental: incomplete feature days detected=1; operational price policy will be applied
-  2026-09-22  LARS  92.8s
-Point forecast dwd_d56_c25_fundamental: 2026-07-24..2026-09-22
+  2026-09-23  LARS  98.2s
+Point forecast dwd_d56_c25_fundamental: 2026-07-25..2026-09-23
 dwd_d56_c25_fundamental: incomplete feature days detected=1; operational price policy will be applied
-  2026-09-22  LARS  394.2s
-2026-09-22
+  2026-09-23  LARS  396.1s
+2026-09-23
 Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\2\latest.json
 Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\8\latest.json
-Energy Arena point: {'submission_id': 71368, 'submission_ids': [71368], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-21T08:39:02.058047Z'}
-Energy Arena quantile: {'submission_id': 71369, 'submission_ids': [71369], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-21T08:39:02.163216Z'}
+Energy Arena point: {'submission_id': 71602, 'submission_ids': [71602], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-22T08:39:12.908874Z'}
+Energy Arena quantile: {'submission_id': 71603, 'submission_ids': [71603], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-22T08:39:13.017181Z'}
 {
-  "target_start": "2026-09-22T00:00:00+02:00",
+  "target_start": "2026-09-23T00:00:00+02:00",
   "point_model": "dwd_fundamental:q0.500",
   "reference_lear_model": "dwd_d56_c5_fundamental",
   "sqra_model": "dwd_fundamental",
@@ -32,24 +32,24 @@ Energy Arena quantile: {'submission_id': 71369, 'submission_ids': [71369], 'stat
   "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\default\\8\\latest.json",
   "submissions": {
     "point": {
-      "submission_id": 71368,
+      "submission_id": 71602,
       "submission_ids": [
-        71368
+        71602
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-09-21T08:39:02.058047Z"
+      "submitted_at": "2026-09-22T08:39:12.908874Z"
     },
     "quantile": {
-      "submission_id": 71369,
+      "submission_id": 71603,
       "submission_ids": [
-        71369
+        71603
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-09-21T08:39:02.163216Z"
+      "submitted_at": "2026-09-22T08:39:13.017181Z"
     }
   }
 }
-completed_at=2026-09-21T10:39:02.188335+02:00
+completed_at=2026-09-22T10:39:13.045861+02:00
 status=success
