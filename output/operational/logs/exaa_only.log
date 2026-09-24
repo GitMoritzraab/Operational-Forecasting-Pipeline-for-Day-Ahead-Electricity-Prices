@@ -1,50 +1,28 @@
-started_at=2026-09-23T11:15:03.316078+02:00
+started_at=2026-09-24T11:15:03.208752+02:00
 command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline.py --exaa-only
-Target: 2026-09-24T00:00:00+02:00
+Target: 2026-09-25T00:00:00+02:00
 Submitted point forecast: SQRA exaa_only, q=0.500
 Reference LEAR point run: exaa_only_d364
 SQRA configuration: exaa_only
 Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
 Point runs: exaa_only_d56, exaa_only_d112, exaa_only_d364
-Updating prices_exaa.csv: 2026-09-24 through 2026-09-24
-Point forecast exaa_only_d56: 2026-07-26..2026-09-24
-  2026-09-24  LARS  10.0s
-Point forecast exaa_only_d112: 2026-07-26..2026-09-24
-  2026-09-24  LARS  20.5s
-Point forecast exaa_only_d364: 2026-07-26..2026-09-24
-  2026-09-24  LassoCV  10.1s
-2026-09-24
-Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\2\latest.json
-Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\8\latest.json
-Energy Arena point: {'submission_id': 71848, 'submission_ids': [71848], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-23T09:15:58.675626Z'}
-Energy Arena quantile: {'submission_id': 71849, 'submission_ids': [71849], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-09-23T09:15:58.781662Z'}
-{
-  "target_start": "2026-09-24T00:00:00+02:00",
-  "point_model": "exaa_only:q0.500",
-  "reference_lear_model": "exaa_only_d364",
-  "sqra_model": "exaa_only",
-  "point_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\2\\latest.json",
-  "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\8\\latest.json",
-  "submissions": {
-    "point": {
-      "submission_id": 71848,
-      "submission_ids": [
-        71848
-      ],
-      "status": "pending",
-      "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-09-23T09:15:58.675626Z"
-    },
-    "quantile": {
-      "submission_id": 71849,
-      "submission_ids": [
-        71849
-      ],
-      "status": "pending",
-      "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-09-23T09:15:58.781662Z"
-    }
-  }
-}
-completed_at=2026-09-23T11:15:58.810118+02:00
-status=success
+Updating prices_exaa.csv: 2026-09-25 through 2026-09-25
+EXAA prices attempt 1 failed: ; retrying in 300 seconds
+Updating prices_exaa.csv: 2026-09-25 through 2026-09-25
+EXAA prices attempt 2 failed: ; retrying in 300 seconds
+Updating prices_exaa.csv: 2026-09-25 through 2026-09-25
+failed_at=2026-09-24T11:25:14.827793+02:00
+status=failed
+Traceback (most recent call last):
+  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 1012, in main
+    summary = execute_pipeline(
+              ^^^^^^^^^^^^^^^^^
+  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 754, in execute_pipeline
+    prices, exaa, load = load_market_data(
+                         ^^^^^^^^^^^^^^^^^
+  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 269, in load_market_data
+    exaa = _fetch_retry(
+           ^^^^^^^^^^^^^
+  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 209, in _fetch_retry
+    raise RuntimeError(f"{label} failed after {attempts} attempts: {last_error}")
+RuntimeError: EXAA prices failed after 3 attempts: 
