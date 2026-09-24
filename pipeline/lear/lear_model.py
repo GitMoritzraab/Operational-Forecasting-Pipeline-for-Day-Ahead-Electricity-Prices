@@ -734,13 +734,13 @@ def merge_all_features(
         .sort_index()
     )
     nan_mask = features.isna().any(axis=1)
+    missing_rows = features.loc[nan_mask].isna().to_numpy()
     dropped_info = pd.DataFrame(
         {
             "date": features.index[nan_mask],
-            "nan_columns": features.loc[nan_mask]
-            .isna()
-            .apply(lambda row: row.index[row].tolist(), axis=1)
-            .values,
+            "nan_columns": [
+                features.columns[row].tolist() for row in missing_rows
+            ],
         }
     )
     if dropna:

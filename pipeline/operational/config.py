@@ -59,6 +59,8 @@ class OperationalConfig:
     delete_dwd_raw_after_preprocess: bool
     download_exaa: str
     market_data_retry_seconds: int
+    exaa_only_download_attempts: int
+    fundamental_load_download_attempts: int
     dwd_open_data_url: str
     dwd_operational_run_hour: str
     dwd_history_run_hour: str
@@ -143,6 +145,18 @@ def load_operational_config(repo_root: Path | str | None = None) -> OperationalC
     market_data_retry_seconds = env_int("MARKET_DATA_RETRY_SECONDS", 300)
     if market_data_retry_seconds < 0:
         raise ValueError("MARKET_DATA_RETRY_SECONDS must be at least 0.")
+    exaa_only_download_attempts = env_int(
+        "EXAA_ONLY_DOWNLOAD_MAX_ATTEMPTS", 8
+    )
+    if exaa_only_download_attempts < 1:
+        raise ValueError("EXAA_ONLY_DOWNLOAD_MAX_ATTEMPTS must be at least 1.")
+    fundamental_load_download_attempts = env_int(
+        "FUNDAMENTAL_LOAD_DOWNLOAD_MAX_ATTEMPTS", 4
+    )
+    if fundamental_load_download_attempts < 1:
+        raise ValueError(
+            "FUNDAMENTAL_LOAD_DOWNLOAD_MAX_ATTEMPTS must be at least 1."
+        )
 
     return OperationalConfig(
         repo_root=root,
@@ -171,6 +185,8 @@ def load_operational_config(repo_root: Path | str | None = None) -> OperationalC
         ),
         download_exaa=_download_exaa_mode(),
         market_data_retry_seconds=market_data_retry_seconds,
+        exaa_only_download_attempts=exaa_only_download_attempts,
+        fundamental_load_download_attempts=fundamental_load_download_attempts,
         dwd_open_data_url=os.getenv(
             "DWD_OPEN_DATA_URL",
             "https://opendata.dwd.de/weather/nwp/icon-d2/grib",

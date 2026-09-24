@@ -266,6 +266,11 @@ def load_market_data(
                 exaa_path, start_date, target_date, config.timezone
             )
         else:
+            exaa_attempts = (
+                config.exaa_only_download_attempts
+                if config.point_variant == "exaa_only"
+                else 3
+            )
             exaa = _fetch_retry(
                 "EXAA prices",
                 lambda: load_or_fetch_frame(
@@ -279,26 +284,43 @@ def load_market_data(
                     ),
                     timezone=config.timezone,
                 ),
+                attempts=exaa_attempts,
                 retry_seconds=config.market_data_retry_seconds,
             )
 
     load: Optional[pd.DataFrame] = None
     if config.needs_load:
-        load = _fetch_retry(
-            "ENTSO-E load forecast",
-            lambda: load_or_fetch_frame(
-                config.entsoe_load_cache_dir / "load_forecast.csv",
-                start,
-                target,
-                partial(
-                    fetch_load_forecast,
-                    api_key=config.entsoe_api_key,
-                    target_tz=config.timezone,
-                ),
-                timezone=config.timezone,
-            ),
-            retry_seconds=config.market_data_retry_seconds,
+        load_attempts = (
+            config.fundamental_load_download_attempts
+            if config.point_variant == "fundamental"
+            else 3
         )
+        try:
+            load = _fetch_retry(
+                "ENTSO-E load forecast",
+                lambda: load_or_fetch_frame(
+                    config.entsoe_load_cache_dir / "load_forecast.csv",
+                    start,
+                    target,
+                    partial(
+                        fetch_load_forecast,
+                        api_key=config.entsoe_api_key,
+                        target_tz=config.timezone,
+                    ),
+                    timezone=config.timezone,
+                ),
+                attempts=load_attempts,
+                retry_seconds=config.market_data_retry_seconds,
+            )
+        except RuntimeError as exc:
+            if config.point_variant != "fundamental":
+                raise
+            print(
+                "WARNING: ENTSO-E load forecast is still unavailable after "
+                f"{load_attempts} attempts; continuing without the load "
+                f"feature. Last error: {exc}",
+                flush=True,
+            )
     return prices, exaa, load
 
 
@@ -388,10 +410,14 @@ def _assemble_matrices(
     else:
         if run.clusters is None or run.clusters not in weather:
             raise ValueError(f"No DWD features loaded for {run.name}.")
-        if load is None:
-            raise ValueError(f"{run.name} requires target-day load forecasts.")
         if run.use_exaa and exaa is None:
             raise ValueError(f"{run.name} requires EXAA prices.")
+        load_features = (
+            build_load_features(load)
+            if load is not None
+            else pd.DataFrame(index=daily_index)
+        )
+        load_features.index.name = "date"
         features, dropped = merge_all_features(
             weather[run.clusters],
             build_price_features(
@@ -400,7 +426,7 @@ def _assemble_matrices(
                 exaa_vector=run.use_exaa,
                 daily_index=daily_index,
             ),
-            build_load_features(load),
+            load_features,
             build_temporal_features(daily_index),
             dropna=False,
         )
@@ -605,6 +631,7 @@ def run_point_model(
         "use_vst": config.lear_use_vst,
         "dwd_operational_run_hour": config.dwd_operational_run_hour,
         "dwd_history_run_hour": config.dwd_history_run_hour,
+        "load_feature_included": load is not None and not run.use_exaa_only,
         "missing_price_policy": (
             "skip incomplete training rows and suppress unavailable target-day "
             "EPEX lag columns"

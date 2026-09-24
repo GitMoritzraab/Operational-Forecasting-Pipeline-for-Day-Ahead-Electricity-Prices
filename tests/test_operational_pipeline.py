@@ -27,12 +27,14 @@ from pipeline.operational.energy_arena import (
     submission_record_path,
 )
 from pipeline.operational.runner import (
+    _assemble_matrices,
     _display_path,
     _fetch_retry,
     _payload_path,
     _submission_stream,
     arena_lock_path,
     build_parser,
+    load_market_data,
     main,
     pipeline_log_path,
     pipeline_lock_paths,
@@ -95,6 +97,8 @@ def _config(root: Path, **overrides) -> OperationalConfig:
         "delete_dwd_raw_after_preprocess": True,
         "download_exaa": "auto",
         "market_data_retry_seconds": 300,
+        "exaa_only_download_attempts": 8,
+        "fundamental_load_download_attempts": 4,
         "dwd_open_data_url": "https://opendata.dwd.de/weather/nwp/icon-d2/grib",
         "dwd_operational_run_hour": "06",
         "dwd_history_run_hour": "09",
@@ -666,6 +670,133 @@ class DwdAcquisitionTests(unittest.TestCase):
             )
             self.assertEqual(verify.call_count, 2)
             sleep.assert_called_once_with(0)
+
+
+class MarketAcquisitionPolicyTests(unittest.TestCase):
+    @staticmethod
+    def _price_frame(timezone: str) -> pd.DataFrame:
+        index = pd.DatetimeIndex([pd.Timestamp("2026-09-24", tz=timezone)])
+        return pd.DataFrame({"price_da": [100.0]}, index=index)
+
+    def test_exaa_only_uses_eight_total_attempts_then_fails(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config = _config(
+                Path(temporary_directory),
+                point_variant="exaa_only",
+                sqra_variant="exaa_only",
+                market_data_retry_seconds=0,
+                exaa_only_download_attempts=8,
+            )
+            requested_files = []
+
+            def loader(path, *args, **kwargs):
+                requested_files.append(Path(path).name)
+                if Path(path).name == "prices_da.csv":
+                    return self._price_frame(config.timezone)
+                raise RuntimeError("EXAA not published")
+
+            with (
+                patch(
+                    "pipeline.operational.runner.load_or_fetch_frame",
+                    side_effect=loader,
+                ),
+                patch("pipeline.operational.runner.time.sleep") as sleep,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "after 8 attempts"):
+                    load_market_data(
+                        config,
+                        start_date=date(2026, 9, 20),
+                        target_date=date(2026, 9, 25),
+                    )
+
+        self.assertEqual(requested_files.count("prices_exaa.csv"), 8)
+        self.assertEqual(sleep.call_count, 7)
+        self.assertEqual(
+            [item.args[0] for item in sleep.call_args_list],
+            [0] * 7,
+        )
+
+    def test_fundamental_omits_load_after_four_failed_attempts(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config = _config(
+                Path(temporary_directory),
+                market_data_retry_seconds=0,
+                fundamental_load_download_attempts=4,
+            )
+            requested_files = []
+
+            def loader(path, *args, **kwargs):
+                requested_files.append(Path(path).name)
+                if Path(path).name == "prices_da.csv":
+                    return self._price_frame(config.timezone)
+                raise RuntimeError("load forecast not published")
+
+            with (
+                patch(
+                    "pipeline.operational.runner.load_or_fetch_frame",
+                    side_effect=loader,
+                ),
+                patch("pipeline.operational.runner.time.sleep") as sleep,
+            ):
+                prices, exaa, load = load_market_data(
+                    config,
+                    start_date=date(2026, 9, 20),
+                    target_date=date(2026, 9, 25),
+                )
+
+        self.assertFalse(prices.empty)
+        self.assertIsNone(exaa)
+        self.assertIsNone(load)
+        self.assertEqual(requested_files.count("load_forecast.csv"), 4)
+        self.assertEqual(sleep.call_count, 3)
+
+    def test_fundamental_matrix_can_omit_the_load_block(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config = _config(Path(temporary_directory))
+            lear_run = resolve_model_plan(config)[1]
+            dates = pd.date_range(
+                "2026-09-23", periods=2, freq="D", tz=config.timezone
+            )
+            weather = pd.DataFrame({"weather": [1.0, 2.0]}, index=dates)
+            price_features = pd.DataFrame(
+                {"price_d1_mtu_00": [50.0, 51.0]}, index=dates
+            )
+            time_features = pd.DataFrame(
+                {"is_holiday": [0, 0]}, index=dates
+            )
+            target = pd.DataFrame({0: [45.0, np.nan]}, index=dates)
+
+            with (
+                patch(
+                    "pipeline.operational.runner.build_price_features",
+                    return_value=price_features,
+                ),
+                patch(
+                    "pipeline.operational.runner.build_temporal_features",
+                    return_value=time_features,
+                ),
+                patch(
+                    "pipeline.operational.runner.build_y_matrix",
+                    return_value=target,
+                ),
+            ):
+                features, result_target = _assemble_matrices(
+                    config,
+                    lear_run,
+                    prices=pd.DataFrame(),
+                    exaa=None,
+                    load=None,
+                    weather={5: weather},
+                    first_feature_date=date(2026, 9, 23),
+                    target_date=date(2026, 9, 24),
+                )
+
+        self.assertEqual(
+            features.columns.tolist(),
+            ["weather", "price_d1_mtu_00", "is_holiday"],
+        )
+        self.assertFalse(any(column.startswith("load_") for column in features))
+        pd.testing.assert_frame_equal(result_target, target)
 
 
 class MarketCacheTests(unittest.TestCase):

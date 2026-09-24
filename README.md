@@ -146,7 +146,9 @@ uses them or `DOWNLOAD_EXAA=true`. Optional variables
 `OPERATIONAL_ENTSOE_LOAD_CACHE_DIR`, and `OPERATIONAL_EXAA_CACHE_DIR` can place
 the three caches elsewhere. When an ENTSO-E or EXAA request fails, the pipeline
 waits `MARKET_DATA_RETRY_SECONDS` (300 seconds by default) before its next
-attempt.
+attempt. EXAA-Only makes eight total EXAA attempts. The Fundamental pipeline
+makes four total load-forecast attempts and, if the fourth still fails,
+continues with a consistent feature set that omits the load block.
 
 ### Maintaining the ICON-D2 calibration history
 
