@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 import bz2
+import json
 import os
 from datetime import date, datetime
 from pathlib import Path
@@ -19,6 +20,7 @@ from pipeline.operational.config import OperationalConfig, load_operational_conf
 from pipeline.operational import dwd
 from pipeline.operational.energy_arena import (
     ArenaChallenge,
+    ArenaTargets,
     build_point_payload,
     build_quantile_payload,
     build_sqra_median_point_payload,
@@ -33,7 +35,10 @@ from pipeline.operational.runner import (
     _payload_path,
     _submission_stream,
     arena_lock_path,
+    build_operational_persistence_fallback,
+    build_operational_persistence_quantile_fallback,
     build_parser,
+    execute_pipeline,
     load_market_data,
     main,
     pipeline_log_path,
@@ -477,6 +482,299 @@ class EnergyArenaPayloadTests(unittest.TestCase):
         )
 
 
+class OperationalPersistenceFallbackTests(unittest.TestCase):
+    @staticmethod
+    def _prices(target_date: date, timezone: str) -> pd.DataFrame:
+        start = pd.Timestamp(target_date - pd.Timedelta(days=67), tz=timezone)
+        end = pd.Timestamp(target_date, tz=timezone)
+        index = pd.date_range(start, end, freq="15min", inclusive="left")
+        values = np.asarray(
+            [
+                timestamp.day * 1000.0
+                + timestamp.hour * 4
+                + timestamp.minute // 15
+                for timestamp in index
+            ],
+            dtype=float,
+        )
+        return pd.DataFrame({"price_da": values}, index=index)
+
+    def test_persistence_fallback_prefers_complete_d1(self):
+        target = date(2026, 9, 18)
+        prices = self._prices(target, "Europe/Berlin")
+
+        forecast, lag, source_date = build_operational_persistence_fallback(
+            prices,
+            target,
+        )
+
+        self.assertEqual(lag, 1)
+        self.assertEqual(source_date, date(2026, 9, 17))
+        self.assertEqual(forecast.loc[(pd.Timestamp(target), 1), "y_pred"], 17000.0)
+        self.assertEqual(forecast.loc[(pd.Timestamp(target), 96), "y_pred"], 17095.0)
+        self.assertTrue(forecast["y_true"].isna().all())
+
+    def test_persistence_fallback_uses_d7_when_d1_is_incomplete(self):
+        target = date(2026, 9, 18)
+        prices = self._prices(target, "Europe/Berlin")
+        missing_d1 = prices.index.date == date(2026, 9, 17)
+        prices.loc[missing_d1, "price_da"] = np.nan
+
+        forecast, lag, source_date = build_operational_persistence_fallback(
+            prices,
+            target,
+        )
+
+        self.assertEqual(lag, 7)
+        self.assertEqual(source_date, date(2026, 9, 11))
+        self.assertEqual(forecast.loc[(pd.Timestamp(target), 1), "y_pred"], 11000.0)
+        quantile_forecast, metadata = (
+            build_operational_persistence_quantile_fallback(
+                prices,
+                target,
+                lag=lag,
+                point_forecast=forecast,
+                quantiles=(0.025, 0.25, 0.5, 0.75, 0.975),
+            )
+        )
+        self.assertEqual(metadata["lag_days"], 7)
+        np.testing.assert_allclose(
+            quantile_forecast["q0.500"],
+            forecast["y_pred"],
+        )
+
+    def test_quantile_fallback_is_pooled_non_crossing_and_median_centered(self):
+        target = date(2026, 9, 18)
+        prices = self._prices(target, "Europe/Berlin")
+        point, lag, _ = build_operational_persistence_fallback(prices, target)
+
+        forecast, metadata = build_operational_persistence_quantile_fallback(
+            prices,
+            target,
+            lag=lag,
+            point_forecast=point,
+            quantiles=(0.025, 0.25, 0.5, 0.75, 0.975),
+        )
+
+        quantile_columns = [
+            "q0.025",
+            "q0.250",
+            "q0.500",
+            "q0.750",
+            "q0.975",
+        ]
+        np.testing.assert_allclose(forecast["q0.500"], point["y_pred"])
+        self.assertTrue(
+            (
+                np.diff(
+                    forecast[quantile_columns].to_numpy(dtype=float),
+                    axis=1,
+                )
+                >= 0
+            ).all()
+        )
+        self.assertEqual(metadata["complete_calibration_days"], 60)
+        self.assertEqual(metadata["calibration_observations"], 60 * 96)
+        self.assertTrue(metadata["target_excluded_from_calibration"])
+        self.assertTrue(metadata["median_centered"])
+
+    def test_fundamental_dwd_failure_saves_both_fallback_payloads(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            config = _config(root)
+            target = date(2026, 9, 18)
+            targets = ArenaTargets(
+                point=_challenge("point", target),
+                quantile=_challenge("quantile", target),
+            )
+            prices = self._prices(target, config.timezone)
+
+            with (
+                patch(
+                    "pipeline.operational.runner.prepare_target_dwd",
+                    side_effect=RuntimeError("06 run unavailable"),
+                ),
+                patch(
+                    "pipeline.operational.runner._target_dwd_histories_ready",
+                    return_value=False,
+                ),
+                patch(
+                    "pipeline.operational.runner._load_entsoe_prices",
+                    return_value=prices,
+                ) as load_prices,
+                patch(
+                    "pipeline.operational.runner.load_market_data"
+                ) as load_all_market,
+            ):
+                summary = execute_pipeline(
+                    config,
+                    targets,
+                    submit=False,
+                )
+
+            point_path = (
+                config.output_root
+                / "payloads"
+                / "default"
+                / targets.point.challenge_id
+                / "latest.json"
+            )
+            quantile_path = (
+                config.output_root
+                / "payloads"
+                / "default"
+                / targets.quantile.challenge_id
+                / "latest.json"
+            )
+            point_payload = json.loads(point_path.read_text(encoding="utf-8"))
+            quantile_payload = json.loads(
+                quantile_path.read_text(encoding="utf-8")
+            )
+            results_created = config.results_root.exists()
+
+        self.assertTrue(summary["fallback"])
+        self.assertEqual(summary["point_model"], "persistence_d1_dwd_fallback")
+        self.assertEqual(
+            summary["quantile_model"],
+            "pooled_residual_persistence_d1_dwd_fallback",
+        )
+        self.assertEqual(summary["quantile_status"], "generated")
+        self.assertEqual(
+            summary["quantile_fallback"]["calibration_observations"],
+            60 * 96,
+        )
+        self.assertFalse(summary["model_histories_updated"])
+        self.assertEqual(len(point_payload["values"]), 96)
+        self.assertEqual(len(quantile_payload["values"]), 96)
+        self.assertEqual(
+            [row[2] for row in quantile_payload["values"]],
+            point_payload["values"],
+        )
+        self.assertFalse(results_created)
+        load_prices.assert_called_once()
+        load_all_market.assert_not_called()
+
+    def test_complete_fallback_submits_point_and_quantile_payloads(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            config = _config(root)
+            target = date(2099, 9, 18)
+            targets = ArenaTargets(
+                point=_challenge("point", target),
+                quantile=_challenge("quantile", target),
+            )
+            prices = self._prices(target, config.timezone)
+
+            with (
+                patch(
+                    "pipeline.operational.runner.prepare_target_dwd",
+                    side_effect=RuntimeError("06 run unavailable"),
+                ),
+                patch(
+                    "pipeline.operational.runner._target_dwd_histories_ready",
+                    return_value=False,
+                ),
+                patch(
+                    "pipeline.operational.runner._load_entsoe_prices",
+                    return_value=prices,
+                ),
+                patch(
+                    "pipeline.operational.runner.submit_with_record",
+                    return_value={"status": "submitted"},
+                ) as submit_payload,
+            ):
+                summary = execute_pipeline(config, targets, submit=True)
+
+        self.assertEqual(submit_payload.call_count, 2)
+        submitted_challenges = {
+            call.kwargs["payload"]["challenge_id"]
+            for call in submit_payload.call_args_list
+        }
+        self.assertEqual(
+            submitted_challenges,
+            {
+                targets.point.challenge_id,
+                targets.quantile.challenge_id,
+            },
+        )
+        self.assertEqual(set(summary["submissions"]), {"point", "quantile"})
+
+    def test_insufficient_quantile_history_keeps_point_fallback(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            config = _config(root)
+            target = date(2026, 9, 18)
+            targets = ArenaTargets(
+                point=_challenge("point", target),
+                quantile=_challenge("quantile", target),
+            )
+            prices = self._prices(target, config.timezone)
+            cutoff = pd.Timestamp(target - pd.Timedelta(days=7), tz=config.timezone)
+            prices = prices.loc[prices.index >= cutoff]
+
+            with (
+                patch(
+                    "pipeline.operational.runner.prepare_target_dwd",
+                    side_effect=RuntimeError("06 run unavailable"),
+                ),
+                patch(
+                    "pipeline.operational.runner._target_dwd_histories_ready",
+                    return_value=False,
+                ),
+                patch(
+                    "pipeline.operational.runner._load_entsoe_prices",
+                    return_value=prices,
+                ),
+            ):
+                summary = execute_pipeline(config, targets, submit=False)
+
+            point_path = (
+                config.output_root
+                / "payloads"
+                / "default"
+                / targets.point.challenge_id
+                / "latest.json"
+            )
+            quantile_path = (
+                config.output_root
+                / "payloads"
+                / "default"
+                / targets.quantile.challenge_id
+                / "latest.json"
+            )
+            point_exists = point_path.is_file()
+            quantile_exists = quantile_path.is_file()
+
+        self.assertEqual(
+            summary["quantile_status"],
+            "skipped_insufficient_history",
+        )
+        self.assertIsNone(summary["quantile_model"])
+        self.assertTrue(point_exists)
+        self.assertFalse(quantile_exists)
+        self.assertFalse(summary["model_histories_updated"])
+
+    def test_non_fundamental_dwd_failure_is_not_masked(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config = _config(
+                Path(temporary_directory),
+                point_variant="exaa_enriched",
+                sqra_variant="exaa_enriched",
+            )
+            target = date(2026, 9, 18)
+            targets = ArenaTargets(
+                point=_challenge("point", target),
+                quantile=_challenge("quantile", target),
+            )
+
+            with patch(
+                "pipeline.operational.runner.prepare_target_dwd",
+                side_effect=RuntimeError("06 run unavailable"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "06 run unavailable"):
+                    execute_pipeline(config, targets, submit=False)
+
+
 class FuturePointForecastTests(unittest.TestCase):
     def test_point_runner_applies_operational_missing_price_policy(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -525,7 +823,12 @@ class FuturePointForecastTests(unittest.TestCase):
                     prices=pd.DataFrame(),
                     exaa=None,
                     load=pd.DataFrame(),
-                    weather={},
+                    weather={
+                        5: pd.DataFrame(
+                            {"weather": np.arange(len(days), dtype=float)},
+                            index=days,
+                        )
+                    },
                     force=False,
                 )
 
@@ -574,7 +877,12 @@ class FuturePointForecastTests(unittest.TestCase):
                     prices=pd.DataFrame(),
                     exaa=None,
                     load=pd.DataFrame(),
-                    weather={},
+                    weather={
+                        5: pd.DataFrame(
+                            {"weather": np.arange(len(days), dtype=float)},
+                            index=days,
+                        )
+                    },
                     force=False,
                 )
 
@@ -582,6 +890,272 @@ class FuturePointForecastTests(unittest.TestCase):
         self.assertEqual(len(target_rows), 96)
         self.assertTrue(np.isfinite(target_rows["y_pred"]).all())
         self.assertTrue(target_rows["y_true"].isna().all())
+
+    def test_missing_historical_dwd_day_is_skipped_for_point_forecasts(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            config = _config(root)
+            run = resolve_model_plan(config)[1]
+            days = pd.date_range(
+                "2026-01-01", periods=57, freq="D", tz=config.timezone
+            )
+            missing_weather_day = days[20]
+            requested_days = pd.DatetimeIndex(
+                [missing_weather_day, days[-1]]
+            )
+            features = pd.DataFrame(
+                {
+                    "weather": np.arange(len(days), dtype=float),
+                    "price_d1_mtu_00": np.arange(len(days), dtype=float),
+                },
+                index=days,
+            )
+            features.loc[missing_weather_day, "weather"] = np.nan
+            target = pd.DataFrame(
+                np.tile(np.arange(96, dtype=float), (len(days), 1)),
+                index=days,
+                columns=range(96),
+            )
+            target.loc[days[-1], :] = np.nan
+            weather = pd.DataFrame(
+                {"weather": np.arange(len(days), dtype=float)}, index=days
+            ).drop(index=missing_weather_day)
+
+            _RecordingLasso.fit_shapes = []
+            with (
+                patch(
+                    "pipeline.operational.runner._assemble_matrices",
+                    return_value=(features, target),
+                ),
+                patch(
+                    "pipeline.lear.lear_model.LassoLarsCV",
+                    _RecordingLasso,
+                ),
+                patch(
+                    "pipeline.lear.lear_model.LassoCV",
+                    _RecordingLasso,
+                ),
+            ):
+                forecast = run_point_model(
+                    config,
+                    run,
+                    requested_days=requested_days,
+                    prices=pd.DataFrame(),
+                    exaa=None,
+                    load=pd.DataFrame(),
+                    weather={5: weather},
+                    force=False,
+                )
+
+            metadata = json.loads(
+                (run.output_dir(config.results_root) / "config.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+
+        forecast_days = forecast.index.get_level_values("delivery_date").unique()
+        self.assertEqual(forecast_days.tolist(), [pd.Timestamp(days[-1].date())])
+        self.assertEqual(_RecordingLasso.fit_shapes, [(55, 2)] * 96)
+        expected_day = missing_weather_day.date().isoformat()
+        self.assertIn(expected_day, metadata["skipped_historical_weather_days"])
+        self.assertIn(expected_day, metadata["skipped_point_forecast_days"])
+
+    def test_missing_historical_exaa_day_is_skipped_for_point_forecasts(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            config = _config(
+                root,
+                point_variant="exaa_only",
+                sqra_variant="exaa_only",
+            )
+            run = resolve_model_plan(config)[1]
+            days = pd.date_range(
+                "2025-01-01", periods=365, freq="D", tz=config.timezone
+            )
+            missing_exaa_day = days[100]
+            requested_days = pd.DatetimeIndex(
+                [missing_exaa_day, days[-1]]
+            )
+            features = pd.DataFrame(
+                {"exaa_d0_mtu_00": np.arange(len(days), dtype=float)},
+                index=days,
+            )
+            features.loc[missing_exaa_day, "exaa_d0_mtu_00"] = np.nan
+            target = pd.DataFrame(
+                np.tile(np.arange(96, dtype=float), (len(days), 1)),
+                index=days,
+                columns=range(96),
+            )
+            target.loc[days[-1], :] = np.nan
+
+            _RecordingLasso.fit_shapes = []
+            with (
+                patch(
+                    "pipeline.operational.runner._assemble_matrices",
+                    return_value=(features, target),
+                ),
+                patch(
+                    "pipeline.lear.lear_model.LassoLarsCV",
+                    _RecordingLasso,
+                ),
+                patch(
+                    "pipeline.lear.lear_model.LassoCV",
+                    _RecordingLasso,
+                ),
+            ):
+                forecast = run_point_model(
+                    config,
+                    run,
+                    requested_days=requested_days,
+                    prices=pd.DataFrame(),
+                    exaa=pd.DataFrame(),
+                    load=None,
+                    weather={},
+                    force=False,
+                )
+
+            metadata = json.loads(
+                (run.output_dir(config.results_root) / "config.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+
+        forecast_days = forecast.index.get_level_values("delivery_date").unique()
+        self.assertEqual(forecast_days.tolist(), [pd.Timestamp(days[-1].date())])
+        self.assertEqual(_RecordingLasso.fit_shapes, [(363, 1)] * 96)
+        expected_day = missing_exaa_day.date().isoformat()
+        self.assertIn(expected_day, metadata["skipped_historical_exaa_days"])
+        self.assertIn(expected_day, metadata["skipped_point_forecast_days"])
+
+    def test_missing_target_day_exaa_remains_a_hard_failure(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            config = _config(
+                root,
+                point_variant="exaa_only",
+                sqra_variant="exaa_only",
+            )
+            run = resolve_model_plan(config)[1]
+            days = pd.date_range(
+                "2025-01-01", periods=365, freq="D", tz=config.timezone
+            )
+            features = pd.DataFrame(
+                {"exaa_d0_mtu_00": np.arange(len(days), dtype=float)},
+                index=days,
+            )
+            features.loc[days[-1], "exaa_d0_mtu_00"] = np.nan
+            target = pd.DataFrame(
+                np.tile(np.arange(96, dtype=float), (len(days), 1)),
+                index=days,
+                columns=range(96),
+            )
+
+            with patch(
+                "pipeline.operational.runner._assemble_matrices",
+                return_value=(features, target),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "target-day EXAA"):
+                    run_point_model(
+                        config,
+                        run,
+                        requested_days=pd.DatetimeIndex([days[-1]]),
+                        prices=pd.DataFrame(),
+                        exaa=pd.DataFrame(),
+                        load=None,
+                        weather={},
+                        force=False,
+                    )
+
+    def test_missing_target_day_dwd_data_remains_a_hard_failure(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            config = _config(root)
+            run = resolve_model_plan(config)[1]
+            days = pd.date_range(
+                "2026-01-01", periods=57, freq="D", tz=config.timezone
+            )
+            target_day = days[-1]
+            features = pd.DataFrame(
+                {
+                    "weather": np.arange(len(days), dtype=float),
+                    "price_d1_mtu_00": np.arange(len(days), dtype=float),
+                },
+                index=days,
+            )
+            features.loc[target_day, "weather"] = np.nan
+            target = pd.DataFrame(
+                np.tile(np.arange(96, dtype=float), (len(days), 1)),
+                index=days,
+                columns=range(96),
+            )
+            weather = pd.DataFrame(
+                {"weather": np.arange(len(days), dtype=float)}, index=days
+            ).drop(index=target_day)
+
+            with patch(
+                "pipeline.operational.runner._assemble_matrices",
+                return_value=(features, target),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "target-day DWD"):
+                    run_point_model(
+                        config,
+                        run,
+                        requested_days=pd.DatetimeIndex([target_day]),
+                        prices=pd.DataFrame(),
+                        exaa=None,
+                        load=pd.DataFrame(),
+                        weather={5: weather},
+                        force=False,
+                    )
+
+    def test_dwd_sqra_skips_missing_historical_delivery_day(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            config = _config(root)
+            days = pd.date_range("2026-01-01", periods=61, freq="D")
+            missing_day = days[20]
+            available_days = days.delete(20)
+            index = make_delivery_index(available_days)
+            truth = np.arange(len(index), dtype=float)
+            truth[-96:] = np.nan
+            specification = get_sqra_run("dwd_fundamental")
+            for member_number, member_path in enumerate(
+                specification.inputs(config.results_root), start=1
+            ):
+                member_path.parent.mkdir(parents=True, exist_ok=True)
+                pd.DataFrame(
+                    {
+                        "y_pred": np.arange(len(index), dtype=float)
+                        + member_number,
+                        "y_true": truth,
+                    },
+                    index=index,
+                ).to_csv(member_path)
+
+            _RecordingSqra.fit_shapes.clear()
+            with patch("pipeline.sqra.sqra_model.SQRA", _RecordingSqra):
+                forecast = run_sqra_model(
+                    config,
+                    "dwd_fundamental",
+                    days[-1].date(),
+                    (0.025, 0.25, 0.5, 0.75, 0.975),
+                )
+
+            metadata = json.loads(
+                (
+                    specification.output_dir(config.results_root)
+                    / "config.json"
+                ).read_text(encoding="utf-8")
+            )
+
+        target_rows = forecast.loc[days[-1]]
+        self.assertEqual(len(target_rows), 96)
+        self.assertTrue(np.isfinite(target_rows.filter(like="q").to_numpy()).all())
+        self.assertEqual(_RecordingSqra.fit_shapes, [(59 * 96, 3)] * 5)
+        self.assertEqual(
+            metadata["skipped_historical_delivery_days"],
+            [missing_day.date().isoformat()],
+        )
 
     def test_dwd_sqra_uses_three_cluster_members_for_unrealized_target(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -715,6 +1289,55 @@ class MarketAcquisitionPolicyTests(unittest.TestCase):
             [item.args[0] for item in sleep.call_args_list],
             [0] * 7,
         )
+
+    def test_historical_exaa_gap_does_not_trigger_target_retry_loop(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config = _config(
+                Path(temporary_directory),
+                point_variant="exaa_only",
+                sqra_variant="exaa_only",
+                market_data_retry_seconds=0,
+            )
+            index = pd.date_range(
+                pd.Timestamp("2026-09-20", tz=config.timezone),
+                pd.Timestamp("2026-09-26", tz=config.timezone),
+                freq="15min",
+                inclusive="left",
+            )
+            exaa_frame = pd.DataFrame({"price_exaa": 50.0}, index=index)
+            historical_gap = exaa_frame.index.date == date(2026, 9, 22)
+            exaa_frame.loc[historical_gap, "price_exaa"] = np.nan
+            requested_files = []
+
+            def loader(path, *args, **kwargs):
+                requested_files.append(Path(path).name)
+                if Path(path).name == "prices_da.csv":
+                    return self._price_frame(config.timezone)
+                return exaa_frame
+
+            with (
+                patch(
+                    "pipeline.operational.runner.load_or_fetch_frame",
+                    side_effect=loader,
+                ),
+                patch("pipeline.operational.runner.time.sleep") as sleep,
+            ):
+                _, exaa, load = load_market_data(
+                    config,
+                    start_date=date(2026, 9, 20),
+                    target_date=date(2026, 9, 25),
+                )
+
+        self.assertIsNotNone(exaa)
+        self.assertIsNone(load)
+        self.assertTrue(exaa.loc[historical_gap, "price_exaa"].isna().all())
+        self.assertTrue(
+            exaa.loc[exaa.index.date == date(2026, 9, 25), "price_exaa"]
+            .notna()
+            .all()
+        )
+        self.assertEqual(requested_files.count("prices_exaa.csv"), 1)
+        sleep.assert_not_called()
 
     def test_fundamental_omits_load_after_four_failed_attempts(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -868,6 +1491,59 @@ class MarketCacheTests(unittest.TestCase):
         self.assertEqual(int(missing.sum()), 96)
         self.assertTrue(result.loc[missing, "price_da"].isna().all())
         self.assertTrue(result.loc[~missing, "price_da"].notna().all())
+
+    def test_unresolved_historical_gap_is_retried_on_every_cache_load(self):
+        timezone = "Europe/Berlin"
+        start = pd.Timestamp("2026-09-20", tz=timezone)
+        end = pd.Timestamp("2026-09-22", tz=timezone)
+        index = pd.date_range(
+            start,
+            pd.Timestamp("2026-09-23", tz=timezone),
+            freq="15min",
+            inclusive="left",
+        )
+        cached = pd.DataFrame({"price_exaa": 50.0}, index=index)
+        gap = cached.index.date == date(2026, 9, 21)
+        cached.loc[gap, "price_exaa"] = np.nan
+        calls = []
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "prices_exaa.csv"
+            cached.to_csv(path)
+
+            def eventually_available_fetch(fetch_start, fetch_end):
+                calls.append((fetch_start, fetch_end))
+                if len(calls) == 1:
+                    return pd.DataFrame(columns=["price_exaa"])
+                return pd.DataFrame(
+                    {"price_exaa": 75.0},
+                    index=cached.index[gap],
+                )
+
+            first = load_or_fetch_frame(
+                path,
+                start,
+                end,
+                eventually_available_fetch,
+                timezone=timezone,
+                allow_incomplete=True,
+            )
+            second = load_or_fetch_frame(
+                path,
+                start,
+                end,
+                eventually_available_fetch,
+                timezone=timezone,
+                allow_incomplete=True,
+            )
+
+        expected_call = (
+            pd.Timestamp("2026-09-21", tz=timezone),
+            pd.Timestamp("2026-09-21", tz=timezone),
+        )
+        self.assertEqual(calls, [expected_call, expected_call])
+        self.assertTrue(first.loc[gap, "price_exaa"].isna().all())
+        self.assertTrue((second.loc[gap, "price_exaa"] == 75.0).all())
 
     def test_cache_fetches_only_the_new_daily_extension(self):
         timezone = "Europe/Berlin"

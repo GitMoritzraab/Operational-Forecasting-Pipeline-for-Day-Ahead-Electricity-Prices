@@ -167,6 +167,13 @@ forecasts themselves before calibrating the model; they only need to continue
 the daily download and preparation process for new delivery days. The large raw
 GRIB/ZIP downloads are not versioned—only the compact, preprocessed Parquet
 histories required by the forecasting models are maintained in the repository.
+For operational robustness, a complete target-day ICON-D2 forecast remains
+mandatory, while unavailable historical ICON-D2 delivery days are skipped in
+LEAR and SQRA calibration and recorded in each run's metadata. The equivalent
+policy applies to EXAA: target-day EXAA prices remain mandatory, but, when
+automatic EXAA downloading is enabled, an unavailable historical EXAA delivery
+day is retried on every pipeline run and skipped in calibration until the cache
+can be repaired.
 
 This produces four appendable Parquet histories for every spatial resolution:
 
@@ -253,6 +260,22 @@ The runner then:
 7. creates DST-aware Energy Arena payloads with 92, 96, or 100 physical MTUs;
    and
 8. submits the point and quantile payloads with `ENERGY_ARENA_API_KEY`.
+
+If the target-day 06 UTC ICON-D2 data remain unavailable after the configured
+DWD download and verification attempts, the default Fundamental pipeline uses
+operational persistence fallbacks. The point forecast first uses the realized
+EPEX price at the same MTU on delivery day d-1; if that complete day is
+unavailable, it uses d-7. The probabilistic fallback uses the same lag and adds
+pooled empirical residual quantiles calculated from the preceding 60 calendar
+days. Residual offsets are median-centered, so q=0.5 is exactly the submitted
+point fallback. At least 14 complete calibration days are required; otherwise
+only the point fallback is submitted. If neither d-1 nor d-7 is complete, the
+pipeline fails without submitting a fallback.
+
+Fallback values are written only to the current payloads and submission
+receipts. They are never added to Fundamental LEAR or SQRA forecasts, metrics,
+runtimes, or calibration histories and therefore cannot affect later model
+calibration.
 
 Generate and validate everything without submitting:
 

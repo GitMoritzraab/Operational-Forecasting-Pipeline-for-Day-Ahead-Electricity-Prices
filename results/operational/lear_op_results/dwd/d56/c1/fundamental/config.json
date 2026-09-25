@@ -9,6 +9,7 @@
   "use_vst": true,
   "dwd_operational_run_hour": "06",
   "dwd_history_run_hour": "09",
+  "load_feature_included": true,
   "missing_price_policy": "skip incomplete training rows and suppress unavailable target-day EPEX lag columns",
   "forecast_schema_version": 2,
   "forecast_index": "delivery_date_mtu",

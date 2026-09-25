@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import time
@@ -23,11 +24,13 @@ from experiment_manifest import LearRun, get_lear_run, get_sqra_run
 from market_cache import load_or_fetch_frame
 from pipeline.delivery_index import (
     delivery_dates,
+    make_delivery_index,
     read_forecast_csv,
     schema_metadata,
     validate_delivery_index,
 )
 from pipeline.lear.lear_model import (
+    build_daily_mtu_matrix,
     build_dwd_features,
     build_load_features,
     build_price_features,
@@ -46,11 +49,13 @@ from pipeline.operational.config import (
     OperationalConfig,
     load_operational_config,
 )
+from pipeline.dwd_history import consolidated_delivery_available
 from pipeline.operational.prepare_dwd import prepare_target_dwd
 from pipeline.operational.locking import interprocess_lock
 from pipeline.operational.energy_arena import (
     ArenaTargets,
     atomic_write_json,
+    build_point_payload,
     build_quantile_payload,
     build_sqra_median_point_payload,
     resolve_targets,
@@ -58,6 +63,15 @@ from pipeline.operational.energy_arena import (
     submit_with_record,
 )
 from pipeline.sqra.sqra_model import build_sqra_panel, generate_sqra_forecast
+
+
+PERSISTENCE_FALLBACK_LAGS = (1, 7)
+PERSISTENCE_FALLBACK_CALIBRATION_DAYS = 60
+PERSISTENCE_FALLBACK_MIN_COMPLETE_DAYS = 14
+
+
+class InsufficientPersistenceCalibrationError(RuntimeError):
+    """Raised when too little EPEX history exists for fallback intervals."""
 
 
 class _Tee:
@@ -209,7 +223,14 @@ def _fetch_retry(
     raise RuntimeError(f"{label} failed after {attempts} attempts: {last_error}")
 
 
-def _read_cache_only(path: Path, start: date, end: date, timezone: str) -> pd.DataFrame:
+def _read_cache_only(
+    path: Path,
+    start: date,
+    end: date,
+    timezone: str,
+    *,
+    allow_incomplete: bool = False,
+) -> pd.DataFrame:
     if not path.is_file():
         raise FileNotFoundError(f"Required cache does not exist: {path}")
     frame = pd.read_csv(path, index_col=0)
@@ -218,7 +239,12 @@ def _read_cache_only(path: Path, start: date, end: date, timezone: str) -> pd.Da
     end_exclusive = _timestamp(end + timedelta(days=1), timezone)
     expected = pd.date_range(start_ts, end_exclusive, freq="15min", inclusive="left")
     selected = frame.reindex(expected)
-    if selected.empty or selected.isna().to_numpy().any():
+    incomplete = (
+        selected.empty
+        or selected.shape[1] == 0
+        or selected.isna().to_numpy().any()
+    )
+    if incomplete and not allow_incomplete:
         raise ValueError(
             f"Cache {path} is incomplete for {start.isoformat()} through {end.isoformat()}."
         )
@@ -226,21 +252,38 @@ def _read_cache_only(path: Path, start: date, end: date, timezone: str) -> pd.Da
     return selected
 
 
-def load_market_data(
+def _require_complete_delivery_day(
+    frame: pd.DataFrame,
+    delivery_day: date,
+    timezone: str,
+    label: str,
+) -> pd.DataFrame:
+    start = _timestamp(delivery_day, timezone)
+    end = start + pd.DateOffset(days=1)
+    expected = pd.date_range(start, end, freq="15min", inclusive="left")
+    selected = frame.reindex(expected)
+    if (
+        selected.empty
+        or selected.shape[1] == 0
+        or selected.isna().to_numpy().any()
+    ):
+        raise ValueError(
+            f"{label} is unavailable or incomplete for target delivery day "
+            f"{delivery_day}."
+        )
+    return frame
+
+
+def _load_entsoe_prices(
     config: OperationalConfig,
     *,
     start_date: date,
     target_date: date,
-) -> tuple[pd.DataFrame, Optional[pd.DataFrame], Optional[pd.DataFrame]]:
-    """Load exactly the market inputs available before the target is realized."""
-    if not config.entsoe_api_key or config.entsoe_api_key == "your_api_key_here":
-        raise ValueError("ENTSOE_API_KEY is missing from .env.")
+) -> pd.DataFrame:
+    """Load realized EPEX prices through the day before the forecast target."""
     start = _timestamp(start_date, config.timezone)
-    realized_end_date = target_date - timedelta(days=1)
-    realized_end = _timestamp(realized_end_date, config.timezone)
-    target = _timestamp(target_date, config.timezone)
-
-    prices = _fetch_retry(
+    realized_end = _timestamp(target_date - timedelta(days=1), config.timezone)
+    return _fetch_retry(
         "ENTSO-E prices",
         lambda: load_or_fetch_frame(
             config.entsoe_price_cache_dir / "prices_da.csv",
@@ -257,13 +300,38 @@ def load_market_data(
         retry_seconds=config.market_data_retry_seconds,
     )
 
+
+def load_market_data(
+    config: OperationalConfig,
+    *,
+    start_date: date,
+    target_date: date,
+) -> tuple[pd.DataFrame, Optional[pd.DataFrame], Optional[pd.DataFrame]]:
+    """Load exactly the market inputs available before the target is realized."""
+    if not config.entsoe_api_key or config.entsoe_api_key == "your_api_key_here":
+        raise ValueError("ENTSOE_API_KEY is missing from .env.")
+    start = _timestamp(start_date, config.timezone)
+    target = _timestamp(target_date, config.timezone)
+    prices = _load_entsoe_prices(
+        config,
+        start_date=start_date,
+        target_date=target_date,
+    )
+
     exaa: Optional[pd.DataFrame] = None
     should_load_exaa = config.needs_exaa or config.download_exaa == "true"
     if should_load_exaa:
         exaa_path = config.exaa_price_cache_dir / "prices_exaa.csv"
         if config.download_exaa == "false":
             exaa = _read_cache_only(
-                exaa_path, start_date, target_date, config.timezone
+                exaa_path,
+                start_date,
+                target_date,
+                config.timezone,
+                allow_incomplete=True,
+            )
+            exaa = _require_complete_delivery_day(
+                exaa, target_date, config.timezone, "EXAA prices"
             )
         else:
             exaa_attempts = (
@@ -271,9 +339,9 @@ def load_market_data(
                 if config.point_variant == "exaa_only"
                 else 3
             )
-            exaa = _fetch_retry(
-                "EXAA prices",
-                lambda: load_or_fetch_frame(
+
+            def load_exaa_with_complete_target() -> pd.DataFrame:
+                frame = load_or_fetch_frame(
                     exaa_path,
                     start,
                     target,
@@ -283,7 +351,15 @@ def load_market_data(
                         target_tz=config.timezone,
                     ),
                     timezone=config.timezone,
-                ),
+                    allow_incomplete=True,
+                )
+                return _require_complete_delivery_day(
+                    frame, target_date, config.timezone, "EXAA prices"
+                )
+
+            exaa = _fetch_retry(
+                "EXAA prices",
+                load_exaa_with_complete_target,
                 attempts=exaa_attempts,
                 retry_seconds=config.market_data_retry_seconds,
             )
@@ -381,6 +457,41 @@ def _requested_days(
     return pd.date_range(first, target_date, freq="D")
 
 
+def _missing_weather_days(
+    run: LearRun,
+    weather: dict[int, pd.DataFrame],
+    daily_index: pd.DatetimeIndex,
+) -> pd.DatetimeIndex:
+    """Return calendar days without a complete operational weather row."""
+    if run.use_exaa_only:
+        return daily_index[:0]
+    if run.clusters is None or run.clusters not in weather:
+        raise ValueError(f"No DWD features loaded for {run.name}.")
+    aligned = weather[run.clusters].reindex(daily_index)
+    if aligned.shape[1] == 0:
+        return daily_index
+    complete = np.isfinite(aligned.to_numpy(dtype=float)).all(axis=1)
+    return daily_index[~complete]
+
+
+def _missing_exaa_days(
+    run: LearRun,
+    features: pd.DataFrame,
+) -> pd.DatetimeIndex:
+    """Return days without the complete EXAA vector required by a run."""
+    if not run.use_exaa:
+        return features.index[:0]
+    exaa_columns = [
+        column for column in features.columns if column.startswith("exaa_d")
+    ]
+    if not exaa_columns:
+        return features.index
+    complete = np.isfinite(
+        features.loc[:, exaa_columns].to_numpy(dtype=float)
+    ).all(axis=1)
+    return features.index[~complete]
+
+
 def _assemble_matrices(
     config: OperationalConfig,
     run: LearRun,
@@ -418,8 +529,9 @@ def _assemble_matrices(
             else pd.DataFrame(index=daily_index)
         )
         load_features.index.name = "date"
+        weather_features = weather[run.clusters].reindex(daily_index)
         features, dropped = merge_all_features(
-            weather[run.clusters],
+            weather_features,
             build_price_features(
                 prices,
                 df_prices_exaa_15=exaa if run.use_exaa else None,
@@ -439,7 +551,7 @@ def _assemble_matrices(
             if not relevant.empty:
                 print(
                     f"{run.name}: incomplete feature days detected="
-                    f"{len(relevant)}; operational price policy will be applied",
+                    f"{len(relevant)}; operational missing-input policy will be applied",
                     flush=True,
                 )
     target = build_y_matrix(prices, features.index)
@@ -547,6 +659,51 @@ def run_point_model(
         first_feature_date=first_feature,
         target_date=requested_days.max().date(),
     )
+    missing_weather_days = _missing_weather_days(run, weather, X.index)
+    missing_exaa_days = _missing_exaa_days(run, X)
+    target_forecast_day = requested_days.max()
+    if target_forecast_day in missing_weather_days:
+        raise RuntimeError(
+            f"{run.name} cannot forecast {target_forecast_day.date()}: "
+            "target-day DWD features are unavailable or incomplete."
+        )
+    if target_forecast_day in missing_exaa_days:
+        raise RuntimeError(
+            f"{run.name} cannot forecast {target_forecast_day.date()}: "
+            "target-day EXAA prices are unavailable or incomplete."
+        )
+    historical_missing_weather_days = missing_weather_days[
+        missing_weather_days < target_forecast_day
+    ]
+    historical_missing_exaa_days = missing_exaa_days[
+        missing_exaa_days < target_forecast_day
+    ]
+    if len(historical_missing_weather_days):
+        print(
+            f"{run.name}: skipping {len(historical_missing_weather_days)} "
+            "historical DWD delivery day(s) with unavailable features: "
+            + ", ".join(
+                value.date().isoformat()
+                for value in historical_missing_weather_days
+            ),
+            flush=True,
+        )
+    if len(historical_missing_exaa_days):
+        print(
+            f"{run.name}: skipping {len(historical_missing_exaa_days)} "
+            "historical EXAA delivery day(s) with unavailable prices: "
+            + ", ".join(
+                value.date().isoformat()
+                for value in historical_missing_exaa_days
+            ),
+            flush=True,
+        )
+    skipped_input_canonical = {
+        value.tz_localize(None).normalize()
+        for value in historical_missing_weather_days.union(
+            historical_missing_exaa_days
+        )
+    }
     output_dir = run.output_dir(config.results_root)
     forecast_path = output_dir / "forecast.csv"
     existing: Optional[pd.DataFrame] = None
@@ -558,13 +715,24 @@ def run_point_model(
         )
         existing = _backfill_truth(existing, Y)
 
-    canonical_days = requested_days.tz_localize(None).normalize()
+    requested_canonical_days = requested_days.tz_localize(None).normalize()
+    eligible_pairs = [
+        (day, canonical)
+        for day, canonical in zip(requested_days, requested_canonical_days)
+        if canonical not in skipped_input_canonical
+    ]
+    canonical_days = pd.DatetimeIndex(
+        [canonical for _, canonical in eligible_pairs]
+    )
+    skipped_point_days = requested_canonical_days[
+        requested_canonical_days.isin(skipped_input_canonical)
+    ]
     existing_days = (
         set(delivery_dates(existing.index).unique()) if existing is not None else set()
     )
     missing_days = [
         day
-        for day, canonical in zip(requested_days, canonical_days)
+        for day, canonical in eligible_pairs
         if force or canonical not in existing_days
     ]
     runtime = pd.DataFrame()
@@ -632,6 +800,25 @@ def run_point_model(
         "dwd_operational_run_hour": config.dwd_operational_run_hour,
         "dwd_history_run_hour": config.dwd_history_run_hour,
         "load_feature_included": load is not None and not run.use_exaa_only,
+        "skipped_historical_weather_days": [
+            value.date().isoformat()
+            for value in historical_missing_weather_days
+        ],
+        "skipped_historical_exaa_days": [
+            value.date().isoformat()
+            for value in historical_missing_exaa_days
+        ],
+        "skipped_point_forecast_days": [
+            value.date().isoformat() for value in skipped_point_days
+        ],
+        "missing_weather_policy": (
+            "require complete target-day weather and skip unavailable historical "
+            "DWD delivery days"
+        ),
+        "missing_exaa_policy": (
+            "require complete target-day EXAA prices and retry unavailable "
+            "historical EXAA delivery days on each run before skipping them"
+        ),
         "missing_price_policy": (
             "skip incomplete training rows and suppress unavailable target-day "
             "EPEX lag columns"
@@ -658,11 +845,20 @@ def run_sqra_model(
         freq="D",
     )
     panel_days = delivery_dates(panel.index).unique()
-    missing = required_days.difference(panel_days)
-    if len(missing):
+    target_day = pd.Timestamp(target_date)
+    if target_day not in panel_days:
         raise ValueError(
-            "SQRA calibration panel is missing delivery days: "
-            + ", ".join(str(day.date()) for day in missing)
+            f"SQRA target delivery day is missing from the point-forecast panel: "
+            f"{target_date}."
+        )
+    missing_historical_days = required_days[:-1].difference(panel_days)
+    if len(missing_historical_days):
+        print(
+            "SQRA calibration is skipping unavailable historical delivery day(s): "
+            + ", ".join(
+                day.date().isoformat() for day in missing_historical_days
+            ),
+            flush=True,
         )
     forecast, runtime = generate_sqra_forecast(
         df=panel,
@@ -702,6 +898,12 @@ def run_sqra_model(
             "train_days": config.sqra_train_days,
             "mtu_specific": config.sqra_mtu_specific,
             "quantiles": list(quantiles),
+            "skipped_historical_delivery_days": [
+                day.date().isoformat() for day in missing_historical_days
+            ],
+            "missing_history_policy": (
+                "calibrate on available observations in the preceding calendar window"
+            ),
             "import_paths": [
                 _display_path(config, path)
                 for path in specification.inputs(config.results_root)
@@ -749,6 +951,354 @@ def _required_input_start(
     return min(market_starts), min(weather_starts) if weather_starts else target_date
 
 
+def _fundamental_dwd_fallback_enabled(config: OperationalConfig) -> bool:
+    return (
+        config.point_variant == "fundamental"
+        and config.resolved_sqra_variant == "fundamental"
+    )
+
+
+def _target_dwd_histories_ready(
+    config: OperationalConfig,
+    target_date: date,
+) -> bool:
+    """Return whether every DWD member needed by Fundamental SQRA is complete."""
+    try:
+        return all(
+            consolidated_delivery_available(
+                config.icon_cluster_dir(cluster),
+                delivery_date=target_date,
+                run_hour=config.dwd_operational_run_hour,
+                timezone=config.timezone,
+            )
+            for cluster in config.required_dwd_clusters
+        )
+    except (OSError, ValueError):
+        return False
+
+
+def build_operational_persistence_fallback(
+    prices: pd.DataFrame,
+    target_date: date,
+    *,
+    lags: Sequence[int] = (1, 7),
+) -> tuple[pd.DataFrame, int, date]:
+    """Build the first complete same-MTU persistence forecast in the lag list."""
+    if "price_da" not in prices.columns:
+        raise ValueError("EPEX prices lack the required 'price_da' column.")
+    daily = build_daily_mtu_matrix(prices["price_da"], "price_da")
+    daily_index = pd.DatetimeIndex(daily.index)
+    if daily_index.tz is not None:
+        daily_index = daily_index.tz_localize(None)
+    daily.index = daily_index.normalize()
+    daily.index.name = "delivery_date"
+
+    unavailable: list[str] = []
+    target_day = pd.Timestamp(target_date)
+    for lag in lags:
+        if lag <= 0:
+            raise ValueError("Persistence fallback lags must be positive.")
+        source_day = target_day - pd.DateOffset(days=int(lag))
+        values = daily.reindex([source_day]).to_numpy(dtype=float).reshape(-1)
+        if len(values) != 96 or not np.isfinite(values).all():
+            unavailable.append(f"d-{lag} ({source_day.date()})")
+            continue
+        forecast = pd.DataFrame(
+            {
+                "y_pred": values,
+                "y_true": np.full(96, np.nan, dtype=float),
+            },
+            index=make_delivery_index([target_day]),
+        )
+        validate_delivery_index(forecast.index, require_complete_days=True)
+        return forecast, int(lag), source_day.date()
+
+    raise RuntimeError(
+        "No complete EPEX persistence source is available for "
+        f"{target_date}: " + ", ".join(unavailable)
+    )
+
+
+def build_operational_persistence_quantile_fallback(
+    prices: pd.DataFrame,
+    target_date: date,
+    *,
+    lag: int,
+    point_forecast: pd.DataFrame,
+    quantiles: Sequence[float],
+    calibration_days: int = PERSISTENCE_FALLBACK_CALIBRATION_DAYS,
+    min_complete_days: int = PERSISTENCE_FALLBACK_MIN_COMPLETE_DAYS,
+) -> tuple[pd.DataFrame, dict[str, object]]:
+    """Add pooled empirical persistence-error quantiles to the point fallback."""
+    if lag <= 0:
+        raise ValueError("Persistence fallback lag must be positive.")
+    if calibration_days < 1:
+        raise ValueError("calibration_days must be positive.")
+    if min_complete_days < 1 or min_complete_days > calibration_days:
+        raise ValueError(
+            "min_complete_days must be between 1 and calibration_days."
+        )
+    levels = tuple(sorted({float(value) for value in quantiles} | {0.5}))
+    if any(not 0.0 < value < 1.0 for value in levels):
+        raise ValueError("Fallback quantiles must be strictly between zero and one.")
+    if "price_da" not in prices.columns:
+        raise ValueError("EPEX prices lack the required 'price_da' column.")
+
+    daily = build_daily_mtu_matrix(prices["price_da"], "price_da")
+    daily_index = pd.DatetimeIndex(daily.index)
+    if daily_index.tz is not None:
+        daily_index = daily_index.tz_localize(None)
+    daily.index = daily_index.normalize()
+    daily.index.name = "delivery_date"
+
+    target_day = pd.Timestamp(target_date)
+    calibration_index = pd.date_range(
+        target_day - pd.DateOffset(days=calibration_days),
+        target_day - pd.DateOffset(days=1),
+        freq="D",
+    )
+    actual = daily.reindex(calibration_index)
+    source_index = calibration_index - pd.DateOffset(days=lag)
+    persistence = daily.reindex(source_index)
+    persistence.index = calibration_index
+    complete = (
+        np.isfinite(actual.to_numpy(dtype=float)).all(axis=1)
+        & np.isfinite(persistence.to_numpy(dtype=float)).all(axis=1)
+    )
+    complete_days = calibration_index[complete]
+    if len(complete_days) < min_complete_days:
+        raise InsufficientPersistenceCalibrationError(
+            "Persistence quantile fallback has only "
+            f"{len(complete_days)} complete calibration day(s); "
+            f"at least {min_complete_days} are required."
+        )
+
+    residuals = (
+        actual.loc[complete_days].to_numpy(dtype=float)
+        - persistence.loc[complete_days].to_numpy(dtype=float)
+    ).reshape(-1)
+    residual_median = float(np.quantile(residuals, 0.5))
+    point_values = point_forecast["y_pred"].to_numpy(dtype=float)
+    if len(point_values) != 96 or not np.isfinite(point_values).all():
+        raise ValueError("Point persistence fallback must contain 96 finite MTUs.")
+
+    forecast = point_forecast[["y_true"]].copy()
+    for level in levels:
+        offset = float(np.quantile(residuals, level)) - residual_median
+        forecast[f"q{level:.3f}"] = point_values + offset
+    quantile_columns = [f"q{level:.3f}" for level in levels]
+    values = forecast[quantile_columns].to_numpy(dtype=float)
+    if not np.isfinite(values).all():
+        raise RuntimeError("Persistence quantile fallback produced non-finite values.")
+    if np.any(np.diff(values, axis=1) < 0):
+        raise RuntimeError("Persistence quantile fallback produced crossing quantiles.")
+    validate_delivery_index(forecast.index, require_complete_days=True)
+
+    metadata: dict[str, object] = {
+        "method": "pooled_empirical_persistence_residuals",
+        "lag_days": int(lag),
+        "calibration_window_days": int(calibration_days),
+        "minimum_complete_days": int(min_complete_days),
+        "complete_calibration_days": int(len(complete_days)),
+        "calibration_observations": int(len(residuals)),
+        "calibration_start": calibration_index.min().date().isoformat(),
+        "calibration_end": calibration_index.max().date().isoformat(),
+        "target_excluded_from_calibration": True,
+        "median_centered": True,
+        "quantiles": list(levels),
+    }
+    return forecast, metadata
+
+
+def _execute_fundamental_persistence_fallback(
+    config: OperationalConfig,
+    targets: ArenaTargets,
+    *,
+    dwd_error: BaseException,
+    submit: bool,
+    force_submit: bool,
+    prices: Optional[pd.DataFrame] = None,
+) -> dict[str, object]:
+    """Submit persistence fallbacks without updating any model history."""
+    target_date = targets.target_date
+    failure_text = f"{type(dwd_error).__name__}: {dwd_error}"
+    print(
+        "WARNING: target-day DWD data are unavailable for the Fundamental "
+        f"pipeline ({failure_text}).",
+        flush=True,
+    )
+    if prices is None:
+        history_days = (
+            PERSISTENCE_FALLBACK_CALIBRATION_DAYS
+            + max(PERSISTENCE_FALLBACK_LAGS)
+        )
+        prices = _load_entsoe_prices(
+            config,
+            start_date=target_date - timedelta(days=history_days),
+            target_date=target_date,
+        )
+    point_forecast, lag, source_date = build_operational_persistence_fallback(
+        prices,
+        target_date,
+        lags=PERSISTENCE_FALLBACK_LAGS,
+    )
+    point_model = f"persistence_d{lag}_dwd_fallback"
+    print(
+        f"Using operational point fallback {point_model}, sourced from "
+        f"{source_date}.",
+        flush=True,
+    )
+
+    quantile_forecast: Optional[pd.DataFrame] = None
+    quantile_metadata: dict[str, object]
+    quantile_model: Optional[str] = None
+    quantile_status: str
+    try:
+        quantile_forecast, quantile_metadata = (
+            build_operational_persistence_quantile_fallback(
+                prices,
+                target_date,
+                lag=lag,
+                point_forecast=point_forecast,
+                quantiles=targets.quantile.quantiles,
+            )
+        )
+        quantile_model = f"pooled_residual_persistence_d{lag}_dwd_fallback"
+        quantile_status = "generated"
+        print(
+            f"Using operational quantile fallback {quantile_model}: "
+            f"{quantile_metadata['complete_calibration_days']} complete days, "
+            f"{quantile_metadata['calibration_observations']} residuals.",
+            flush=True,
+        )
+    except InsufficientPersistenceCalibrationError as exc:
+        quantile_status = "skipped_insufficient_history"
+        quantile_metadata = {
+            "method": "pooled_empirical_persistence_residuals",
+            "lag_days": lag,
+            "calibration_window_days": PERSISTENCE_FALLBACK_CALIBRATION_DAYS,
+            "minimum_complete_days": PERSISTENCE_FALLBACK_MIN_COMPLETE_DAYS,
+            "error": str(exc),
+        }
+        print(
+            "Quantile fallback skipped because its EPEX calibration history is "
+            f"insufficient: {exc}",
+            flush=True,
+        )
+
+    submission_stream = _submission_stream(config)
+    point_payload = build_point_payload(point_forecast, targets.point)
+    point_payload_path = _payload_path(
+        config,
+        submission_stream,
+        targets.point.challenge_id,
+        targets.point.target_start,
+    )
+    atomic_write_json(point_payload_path, point_payload)
+    print(f"Point fallback payload: {_display_path(config, point_payload_path)}")
+
+    quantile_payload: Optional[dict] = None
+    quantile_payload_path: Optional[Path] = None
+    if quantile_forecast is not None:
+        quantile_payload = build_quantile_payload(
+            quantile_forecast,
+            targets.quantile,
+        )
+        quantile_payload_path = _payload_path(
+            config,
+            submission_stream,
+            targets.quantile.challenge_id,
+            targets.quantile.target_start,
+        )
+        atomic_write_json(quantile_payload_path, quantile_payload)
+        print(
+            "Quantile fallback payload: "
+            f"{_display_path(config, quantile_payload_path)}"
+        )
+
+    payloads = [("point", targets.point, point_payload)]
+    if quantile_payload is not None:
+        payloads.append(("quantile", targets.quantile, quantile_payload))
+
+    submissions: dict[str, object] = {}
+    if submit:
+        with interprocess_lock(
+            arena_lock_path(config),
+            timeout_seconds=15 * 60,
+            description="Energy Arena submission account",
+        ):
+            now = datetime.now().astimezone(targets.point.deadline.tzinfo)
+            deadline = min(challenge.deadline for _, challenge, _ in payloads)
+            if now > deadline:
+                raise RuntimeError(
+                    f"Energy Arena fallback deadline has passed: {deadline.isoformat()}"
+                )
+            for label, challenge, payload in payloads:
+                record_path = submission_record_path(
+                    config.output_root,
+                    submission_stream,
+                    challenge.challenge_id,
+                    challenge.target_start,
+                )
+                submission_result = submit_with_record(
+                    api_base=config.arena_api_base_url,
+                    api_key=config.arena_api_key,
+                    payload=payload,
+                    record_path=record_path,
+                    force=force_submit,
+                )
+                if "record" in submission_result:
+                    submission_result = {
+                        **submission_result,
+                        "record": _display_path(
+                            config, Path(str(submission_result["record"]))
+                        ),
+                    }
+                submissions[label] = submission_result
+                print(f"Energy Arena {label} fallback: {submission_result}")
+            if quantile_payload is None:
+                submissions["quantile"] = {
+                    "status": "skipped",
+                    "reason": "insufficient persistence calibration history",
+                }
+                print(
+                    "Energy Arena quantile: skipped "
+                    "(insufficient persistence calibration history)"
+                )
+    else:
+        if quantile_payload is None:
+            print(
+                "Submission disabled; the validated point fallback payload was "
+                "saved locally."
+            )
+        else:
+            print(
+                "Submission disabled; validated point and quantile fallback "
+                "payloads were saved locally."
+            )
+
+    return {
+        "target_start": targets.target_start.isoformat(),
+        "fallback": True,
+        "fallback_reason": failure_text,
+        "point_model": point_model,
+        "persistence_source_date": source_date.isoformat(),
+        "quantile_model": quantile_model,
+        "quantile_fallback": quantile_metadata,
+        "reference_lear_model": None,
+        "sqra_model": None,
+        "point_payload": _display_path(config, point_payload_path),
+        "quantile_payload": (
+            _display_path(config, quantile_payload_path)
+            if quantile_payload_path is not None
+            else None
+        ),
+        "quantile_status": quantile_status,
+        "model_histories_updated": False,
+        "submissions": submissions,
+    }
+
+
 def execute_pipeline(
     config: OperationalConfig,
     targets: ArenaTargets,
@@ -771,12 +1321,28 @@ def execute_pipeline(
     print("Point runs: " + ", ".join(run.name for run in runs))
 
     if config.needs_dwd:
-        prepare_target_dwd(
-            config,
-            target_date,
-            force_download=force_download,
-            delete_raw=config.delete_dwd_raw_after_preprocess,
-        )
+        try:
+            prepare_target_dwd(
+                config,
+                target_date,
+                force_download=force_download,
+                delete_raw=config.delete_dwd_raw_after_preprocess,
+            )
+        except (RuntimeError, ValueError, OSError, subprocess.CalledProcessError) as exc:
+            can_fallback = (
+                _fundamental_dwd_fallback_enabled(config)
+                and config.dwd_operational_run_hour == "06"
+                and not _target_dwd_histories_ready(config, target_date)
+            )
+            if not can_fallback:
+                raise
+            return _execute_fundamental_persistence_fallback(
+                config,
+                targets,
+                dwd_error=exc,
+                submit=submit,
+                force_submit=force_submit,
+            )
 
     prices, exaa, load = load_market_data(
         config, start_date=market_start, target_date=target_date
