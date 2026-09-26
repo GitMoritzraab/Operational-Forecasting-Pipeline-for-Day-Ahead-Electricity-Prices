@@ -10,6 +10,8 @@
     0.75,
     0.975
   ],
+  "skipped_historical_delivery_days": [],
+  "missing_history_policy": "calibrate on available observations in the preceding calendar window",
   "import_paths": [
     "DA_Price_Forecasting_Pipeline_DE_LU-main\\results\\operational\\lear_op_results\\dwd\\d56\\c1\\fundamental\\forecast.csv",
     "DA_Price_Forecasting_Pipeline_DE_LU-main\\results\\operational\\lear_op_results\\dwd\\d56\\c5\\fundamental\\forecast.csv",
