@@ -1,25 +1,39 @@
-started_at=2026-10-07T11:15:03.264349+02:00
+started_at=2026-10-08T11:15:03.244094+02:00
 command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline.py --exaa-only
-Target: 2026-10-08T00:00:00+02:00
+Target: 2026-10-09T00:00:00+02:00
 Submitted point forecast: SQRA exaa_only, q=0.500
 Reference LEAR point run: exaa_only_d364
 SQRA configuration: exaa_only
 Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
 Point runs: exaa_only_d56, exaa_only_d112, exaa_only_d364
-Updating prices_exaa.csv: 2026-10-08 through 2026-10-08
-Point forecast exaa_only_d56: 2026-08-09..2026-10-08
-  2026-10-08  LARS  12.7s
-Point forecast exaa_only_d112: 2026-08-09..2026-10-08
-  2026-10-08  LARS  25.2s
-Point forecast exaa_only_d364: 2026-08-09..2026-10-08
-  2026-10-08  LassoCV  12.9s
-2026-10-08
+Updating prices_exaa.csv: 2026-10-09 through 2026-10-09
+EXAA prices attempt 1 failed: ; retrying in 300 seconds
+Updating prices_exaa.csv: 2026-10-09 through 2026-10-09
+EXAA prices attempt 2 failed: ; retrying in 300 seconds
+Updating prices_exaa.csv: 2026-10-09 through 2026-10-09
+EXAA prices attempt 3 failed: ; retrying in 300 seconds
+Updating prices_exaa.csv: 2026-10-09 through 2026-10-09
+EXAA prices attempt 4 failed: ; retrying in 300 seconds
+Updating prices_exaa.csv: 2026-10-09 through 2026-10-09
+EXAA prices attempt 5 failed: ; retrying in 300 seconds
+Updating prices_exaa.csv: 2026-10-09 through 2026-10-09
+EXAA prices attempt 6 failed: ; retrying in 300 seconds
+Updating prices_exaa.csv: 2026-10-09 through 2026-10-09
+EXAA prices attempt 7 failed: ; retrying in 300 seconds
+Updating prices_exaa.csv: 2026-10-09 through 2026-10-09
+Point forecast exaa_only_d56: 2026-08-10..2026-10-09
+  2026-10-09  LARS  12.7s
+Point forecast exaa_only_d112: 2026-08-10..2026-10-09
+  2026-10-09  LARS  25.5s
+Point forecast exaa_only_d364: 2026-08-10..2026-10-09
+  2026-10-09  LassoCV  13.0s
+2026-10-09
 Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\2\latest.json
 Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\8\latest.json
-Energy Arena point: {'submission_id': 93224, 'submission_ids': [93224], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-07T09:16:08.957483Z'}
-Energy Arena quantile: {'submission_id': 93225, 'submission_ids': [93225], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-07T09:16:09.106127Z'}
+Energy Arena point: {'submission_id': 93598, 'submission_ids': [93598], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-08T09:52:37.033569Z'}
+Energy Arena quantile: {'submission_id': 93599, 'submission_ids': [93599], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-08T09:52:37.164218Z'}
 {
-  "target_start": "2026-10-08T00:00:00+02:00",
+  "target_start": "2026-10-09T00:00:00+02:00",
   "point_model": "exaa_only:q0.500",
   "reference_lear_model": "exaa_only_d364",
   "sqra_model": "exaa_only",
@@ -27,24 +41,24 @@ Energy Arena quantile: {'submission_id': 93225, 'submission_ids': [93225], 'stat
   "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\8\\latest.json",
   "submissions": {
     "point": {
-      "submission_id": 93224,
+      "submission_id": 93598,
       "submission_ids": [
-        93224
+        93598
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-10-07T09:16:08.957483Z"
+      "submitted_at": "2026-10-08T09:52:37.033569Z"
     },
     "quantile": {
-      "submission_id": 93225,
+      "submission_id": 93599,
       "submission_ids": [
-        93225
+        93599
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-10-07T09:16:09.106127Z"
+      "submitted_at": "2026-10-08T09:52:37.164218Z"
     }
   }
 }
-completed_at=2026-10-07T11:16:09.131386+02:00
+completed_at=2026-10-08T11:52:37.191231+02:00
 status=success
