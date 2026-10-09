@@ -1,42 +1,33 @@
-started_at=2026-10-08T10:30:03.003687+02:00
+started_at=2026-10-09T10:30:03.034423+02:00
 command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline.py --fundamental
-Target: 2026-10-09T00:00:00+02:00
+Target: 2026-10-10T00:00:00+02:00
 Submitted point forecast: SQRA dwd_fundamental, q=0.500
 Reference LEAR point run: dwd_d56_c5_fundamental
 SQRA configuration: dwd_fundamental
 Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
 Point runs: dwd_d56_c1_fundamental, dwd_d56_c5_fundamental, dwd_d56_c25_fundamental
-DWD histories ready for delivery 2026-10-09: C=1, C=5, C=25
-Updating prices_da.csv: 2026-10-08 through 2026-10-08
-ENTSO-E prices attempt 1 failed: 400 Client Error: Bad Request for url: https://web-api.tp.entsoe.eu/api?documentType=A44&in_Domain=10Y1001A1001A82H&out_Domain=10Y1001A1001A82H&offset=100&contract_MarketAgreement.type=A01&classificationSequence_AttributeInstanceComponent.position=1&securityToken=27e78a77-d183-4d42-a5cd-5a5024ae95be&periodStart=202610062200&periodEnd=202610092200; retrying in 300 seconds
-Updating prices_da.csv: 2026-10-08 through 2026-10-08
-Updating load_forecast.csv: 2026-10-09 through 2026-10-09
-ENTSO-E load forecast attempt 1 failed: ; retrying in 300 seconds
-Updating load_forecast.csv: 2026-10-09 through 2026-10-09
-ENTSO-E load forecast attempt 2 failed: ; retrying in 300 seconds
-Updating load_forecast.csv: 2026-10-09 through 2026-10-09
-ENTSO-E load forecast attempt 3 failed: ; retrying in 300 seconds
-Updating load_forecast.csv: 2026-10-09 through 2026-10-09
-WARNING: ENTSO-E load forecast is still unavailable after 4 attempts; continuing without the load feature. Last error: ENTSO-E load forecast failed after 4 attempts: 599 Server Error: status code 599 for url: https://web-api.tp.entsoe.eu/api?documentType=A65&processType=A01&outBiddingZone_Domain=10Y1001A1001A82H&securityToken=27e78a77-d183-4d42-a5cd-5a5024ae95be&periodStart=202610082200&periodEnd=202610092200
-Point forecast dwd_d56_c1_fundamental: 2026-08-10..2026-10-09
+DWD histories ready for delivery 2026-10-10: C=1, C=5, C=25
+Updating prices_da.csv: 2026-10-09 through 2026-10-09
+Updating load_forecast.csv: 2026-10-09 through 2026-10-10
+Point forecast dwd_d56_c1_fundamental: 2026-08-11..2026-10-10
 dwd_d56_c1_fundamental: incomplete feature days detected=1; operational missing-input policy will be applied
 dwd_d56_c1_fundamental: skipping 1 historical DWD delivery day(s) with unavailable features: 2026-06-19
-  2026-10-09  LARS  35.9s
-Point forecast dwd_d56_c5_fundamental: 2026-08-10..2026-10-09
+  2026-10-10  LARS  39.7s
+Point forecast dwd_d56_c5_fundamental: 2026-08-11..2026-10-10
 dwd_d56_c5_fundamental: incomplete feature days detected=1; operational missing-input policy will be applied
 dwd_d56_c5_fundamental: skipping 1 historical DWD delivery day(s) with unavailable features: 2026-06-19
-  2026-10-09  LARS  99.4s
-Point forecast dwd_d56_c25_fundamental: 2026-08-10..2026-10-09
+  2026-10-10  LARS  112.4s
+Point forecast dwd_d56_c25_fundamental: 2026-08-11..2026-10-10
 dwd_d56_c25_fundamental: incomplete feature days detected=1; operational missing-input policy will be applied
 dwd_d56_c25_fundamental: skipping 1 historical DWD delivery day(s) with unavailable features: 2026-06-19
-  2026-10-09  LARS  464.9s
-2026-10-09
+  2026-10-10  LARS  485.4s
+2026-10-10
 Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\2\latest.json
 Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\8\latest.json
-Energy Arena point: {'submission_id': 93598, 'submission_ids': [93598], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-08T09:01:57.029265Z'}
-Energy Arena quantile: {'submission_id': 93599, 'submission_ids': [93599], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-08T09:01:57.237546Z'}
+Energy Arena point: {'submission_id': 93953, 'submission_ids': [93953], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-09T08:41:08.268290Z'}
+Energy Arena quantile: {'submission_id': 93954, 'submission_ids': [93954], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-09T08:41:08.383025Z'}
 {
-  "target_start": "2026-10-09T00:00:00+02:00",
+  "target_start": "2026-10-10T00:00:00+02:00",
   "point_model": "dwd_fundamental:q0.500",
   "reference_lear_model": "dwd_d56_c5_fundamental",
   "sqra_model": "dwd_fundamental",
@@ -44,24 +35,24 @@ Energy Arena quantile: {'submission_id': 93599, 'submission_ids': [93599], 'stat
   "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\default\\8\\latest.json",
   "submissions": {
     "point": {
-      "submission_id": 93598,
+      "submission_id": 93953,
       "submission_ids": [
-        93598
+        93953
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-10-08T09:01:57.029265Z"
+      "submitted_at": "2026-10-09T08:41:08.268290Z"
     },
     "quantile": {
-      "submission_id": 93599,
+      "submission_id": 93954,
       "submission_ids": [
-        93599
+        93954
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-10-08T09:01:57.237546Z"
+      "submitted_at": "2026-10-09T08:41:08.383025Z"
     }
   }
 }
-completed_at=2026-10-08T11:01:57.274131+02:00
+completed_at=2026-10-09T10:41:08.410931+02:00
 status=success
