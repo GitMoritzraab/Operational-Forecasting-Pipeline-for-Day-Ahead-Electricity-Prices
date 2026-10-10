@@ -1,50 +1,31 @@
-started_at=2026-10-09T11:15:03.510414+02:00
+started_at=2026-10-10T11:15:03.420523+02:00
 command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline.py --exaa-only
-Target: 2026-10-10T00:00:00+02:00
+Target: 2026-10-11T00:00:00+02:00
 Submitted point forecast: SQRA exaa_only, q=0.500
 Reference LEAR point run: exaa_only_d364
 SQRA configuration: exaa_only
 Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
 Point runs: exaa_only_d56, exaa_only_d112, exaa_only_d364
-Updating prices_exaa.csv: 2026-10-10 through 2026-10-10
-Point forecast exaa_only_d56: 2026-08-11..2026-10-10
-  2026-10-10  LARS  12.8s
-Point forecast exaa_only_d112: 2026-08-11..2026-10-10
-  2026-10-10  LARS  25.1s
-Point forecast exaa_only_d364: 2026-08-11..2026-10-10
-  2026-10-10  LassoCV  13.0s
-2026-10-10
-Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\2\latest.json
-Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\8\latest.json
-Energy Arena point: {'submission_id': 93980, 'submission_ids': [93980], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-09T09:16:10.325762Z'}
-Energy Arena quantile: {'submission_id': 93981, 'submission_ids': [93981], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-09T09:16:10.453385Z'}
-{
-  "target_start": "2026-10-10T00:00:00+02:00",
-  "point_model": "exaa_only:q0.500",
-  "reference_lear_model": "exaa_only_d364",
-  "sqra_model": "exaa_only",
-  "point_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\2\\latest.json",
-  "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\8\\latest.json",
-  "submissions": {
-    "point": {
-      "submission_id": 93980,
-      "submission_ids": [
-        93980
-      ],
-      "status": "pending",
-      "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-10-09T09:16:10.325762Z"
-    },
-    "quantile": {
-      "submission_id": 93981,
-      "submission_ids": [
-        93981
-      ],
-      "status": "pending",
-      "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-10-09T09:16:10.453385Z"
-    }
-  }
-}
-completed_at=2026-10-09T11:16:10.476130+02:00
-status=success
+Updating prices_da.csv: 2026-10-10 through 2026-10-10
+ENTSO-E prices attempt 1 failed: ; retrying in 300 seconds
+Updating prices_da.csv: 2026-10-10 through 2026-10-10
+ENTSO-E prices attempt 2 failed: ; retrying in 300 seconds
+Updating prices_da.csv: 2026-10-10 through 2026-10-10
+failed_at=2026-10-10T11:25:29.056758+02:00
+status=failed
+Traceback (most recent call last):
+  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 1605, in main
+    summary = execute_pipeline(
+              ^^^^^^^^^^^^^^^^^
+  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 1347, in execute_pipeline
+    prices, exaa, load = load_market_data(
+                         ^^^^^^^^^^^^^^^^^
+  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 315, in load_market_data
+    prices = _load_entsoe_prices(
+             ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 286, in _load_entsoe_prices
+    return _fetch_retry(
+           ^^^^^^^^^^^^^
+  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 223, in _fetch_retry
+    raise RuntimeError(f"{label} failed after {attempts} attempts: {last_error}")
+RuntimeError: ENTSO-E prices failed after 3 attempts: 
