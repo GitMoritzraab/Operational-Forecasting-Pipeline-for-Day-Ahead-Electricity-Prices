@@ -1,43 +1,33 @@
-started_at=2026-10-11T10:30:03.182991+02:00
+started_at=2026-10-12T10:30:03.396776+02:00
 command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline.py --fundamental
-Target: 2026-10-12T00:00:00+02:00
+Target: 2026-10-13T00:00:00+02:00
 Submitted point forecast: SQRA dwd_fundamental, q=0.500
 Reference LEAR point run: dwd_d56_c5_fundamental
 SQRA configuration: dwd_fundamental
 Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
 Point runs: dwd_d56_c1_fundamental, dwd_d56_c5_fundamental, dwd_d56_c25_fundamental
-DWD histories ready for delivery 2026-10-12: C=1, C=5, C=25
-Updating prices_da.csv: 2026-10-10 through 2026-10-11
-WARNING: prices_da.csv remains incomplete for 96 timestamp(s) on delivery day(s): 2026-10-10
-Updating load_forecast.csv: 2026-10-11 through 2026-10-12
-Point forecast dwd_d56_c1_fundamental: 2026-08-13..2026-10-12
-dwd_d56_c1_fundamental: incomplete feature days detected=3; operational missing-input policy will be applied
+DWD histories ready for delivery 2026-10-13: C=1, C=5, C=25
+Updating prices_da.csv: 2026-10-10 through 2026-10-12
+Updating load_forecast.csv: 2026-10-13 through 2026-10-13
+Point forecast dwd_d56_c1_fundamental: 2026-08-14..2026-10-13
+dwd_d56_c1_fundamental: incomplete feature days detected=1; operational missing-input policy will be applied
 dwd_d56_c1_fundamental: skipping 1 historical DWD delivery day(s) with unavailable features: 2026-06-19
-  2026-10-11 unavailable EPEX lag block(s): price_d1; forecasting with remaining variables
-  2026-10-11  LARS  34.7s
-  2026-10-12 unavailable EPEX lag block(s): price_d2; forecasting with remaining variables
-  2026-10-12  LARS  34.8s
-Point forecast dwd_d56_c5_fundamental: 2026-08-13..2026-10-12
-dwd_d56_c5_fundamental: incomplete feature days detected=3; operational missing-input policy will be applied
+  2026-10-13  LARS  39.6s
+Point forecast dwd_d56_c5_fundamental: 2026-08-14..2026-10-13
+dwd_d56_c5_fundamental: incomplete feature days detected=1; operational missing-input policy will be applied
 dwd_d56_c5_fundamental: skipping 1 historical DWD delivery day(s) with unavailable features: 2026-06-19
-  2026-10-11 unavailable EPEX lag block(s): price_d1; forecasting with remaining variables
-  2026-10-11  LARS  100.4s
-  2026-10-12 unavailable EPEX lag block(s): price_d2; forecasting with remaining variables
-  2026-10-12  LARS  94.4s
-Point forecast dwd_d56_c25_fundamental: 2026-08-13..2026-10-12
-dwd_d56_c25_fundamental: incomplete feature days detected=3; operational missing-input policy will be applied
+  2026-10-13  LARS  110.9s
+Point forecast dwd_d56_c25_fundamental: 2026-08-14..2026-10-13
+dwd_d56_c25_fundamental: incomplete feature days detected=1; operational missing-input policy will be applied
 dwd_d56_c25_fundamental: skipping 1 historical DWD delivery day(s) with unavailable features: 2026-06-19
-  2026-10-11 unavailable EPEX lag block(s): price_d1; forecasting with remaining variables
-  2026-10-11  LARS  471.0s
-  2026-10-12 unavailable EPEX lag block(s): price_d2; forecasting with remaining variables
-  2026-10-12  LARS  465.5s
-2026-10-12
+  2026-10-13  LARS  485.4s
+2026-10-13
 Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\2\latest.json
 Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\8\latest.json
-Energy Arena point: {'submission_id': 94722, 'submission_ids': [94722], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-11T08:50:28.722869Z'}
-Energy Arena quantile: {'submission_id': 94723, 'submission_ids': [94723], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-11T08:50:28.863638Z'}
+Energy Arena point: {'submission_id': 95084, 'submission_ids': [95084], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-12T08:41:09.411879Z'}
+Energy Arena quantile: {'submission_id': 95085, 'submission_ids': [95085], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-12T08:41:09.502015Z'}
 {
-  "target_start": "2026-10-12T00:00:00+02:00",
+  "target_start": "2026-10-13T00:00:00+02:00",
   "point_model": "dwd_fundamental:q0.500",
   "reference_lear_model": "dwd_d56_c5_fundamental",
   "sqra_model": "dwd_fundamental",
@@ -45,24 +35,24 @@ Energy Arena quantile: {'submission_id': 94723, 'submission_ids': [94723], 'stat
   "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\default\\8\\latest.json",
   "submissions": {
     "point": {
-      "submission_id": 94722,
+      "submission_id": 95084,
       "submission_ids": [
-        94722
+        95084
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-10-11T08:50:28.722869Z"
+      "submitted_at": "2026-10-12T08:41:09.411879Z"
     },
     "quantile": {
-      "submission_id": 94723,
+      "submission_id": 95085,
       "submission_ids": [
-        94723
+        95085
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-10-11T08:50:28.863638Z"
+      "submitted_at": "2026-10-12T08:41:09.502015Z"
     }
   }
 }
-completed_at=2026-10-11T10:50:28.881035+02:00
+completed_at=2026-10-12T10:41:09.517766+02:00
 status=success
