@@ -31,7 +31,9 @@ from pipeline.operational.energy_arena import (
 from pipeline.operational.runner import (
     _assemble_matrices,
     _display_path,
+    _exception_summary,
     _fetch_retry,
+    _load_entsoe_prices,
     _payload_path,
     _submission_stream,
     arena_lock_path,
@@ -774,6 +776,53 @@ class OperationalPersistenceFallbackTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "06 run unavailable"):
                     execute_pipeline(config, targets, submit=False)
 
+    def test_failed_entsoe_refresh_uses_persistence_if_normal_model_cannot_run(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            config = _config(root)
+            target = date(2026, 9, 18)
+            targets = ArenaTargets(
+                point=_challenge("point", target),
+                quantile=_challenge("quantile", target),
+            )
+            prices = self._prices(target, config.timezone)
+            prices.attrs["entsoe_refresh_failed"] = True
+            prices.attrs["entsoe_refresh_error"] = (
+                "RuntimeError: ENTSO-E prices failed after 3 attempts"
+            )
+
+            with (
+                patch("pipeline.operational.runner.prepare_target_dwd"),
+                patch(
+                    "pipeline.operational.runner.load_market_data",
+                    return_value=(prices, None, None),
+                ),
+                patch(
+                    "pipeline.operational.runner._load_weather_features",
+                    return_value=pd.DataFrame(),
+                ),
+                patch(
+                    "pipeline.operational.runner.run_point_model",
+                    side_effect=ValueError(
+                        "Fewer than five complete training observations remain"
+                    ),
+                ) as point_model,
+            ):
+                summary = execute_pipeline(config, targets, submit=False)
+
+        self.assertTrue(summary["fallback"])
+        self.assertEqual(
+            summary["fallback_context"],
+            "unavailable ENTSO-E prices",
+        )
+        self.assertEqual(summary["point_model"], "persistence_d1_entsoe_fallback")
+        self.assertEqual(
+            summary["quantile_model"],
+            "pooled_residual_persistence_d1_entsoe_fallback",
+        )
+        self.assertFalse(summary["model_histories_updated"])
+        point_model.assert_called_once()
+
 
 class FuturePointForecastTests(unittest.TestCase):
     def test_point_runner_applies_operational_missing_price_policy(self):
@@ -1373,6 +1422,81 @@ class MarketAcquisitionPolicyTests(unittest.TestCase):
         self.assertEqual(requested_files.count("load_forecast.csv"), 4)
         self.assertEqual(sleep.call_count, 3)
 
+    def test_fundamental_uses_cached_prices_after_refresh_exception(self):
+        class NoMessageError(Exception):
+            pass
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            config = _config(
+                root,
+                market_data_retry_seconds=0,
+            )
+            start = date(2026, 9, 20)
+            target = date(2026, 9, 25)
+            index = pd.date_range(
+                pd.Timestamp(start, tz=config.timezone),
+                pd.Timestamp(target, tz=config.timezone),
+                freq="15min",
+                inclusive="left",
+            )
+            cached = pd.DataFrame(
+                {"price_da": np.arange(len(index), dtype=float)},
+                index=index,
+            )
+            missing = cached.index.date == date(2026, 9, 24)
+            cached.loc[missing, "price_da"] = np.nan
+            cache_path = config.entsoe_price_cache_dir / "prices_da.csv"
+            cache_path.parent.mkdir(parents=True)
+            cached.to_csv(cache_path)
+
+            with (
+                patch(
+                    "pipeline.operational.runner.load_or_fetch_frame",
+                    side_effect=NoMessageError(),
+                ) as refresh,
+                patch("pipeline.operational.runner.time.sleep") as sleep,
+            ):
+                prices = _load_entsoe_prices(
+                    config,
+                    start_date=start,
+                    target_date=target,
+                )
+
+        self.assertEqual(refresh.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+        self.assertTrue(prices.loc[missing, "price_da"].isna().all())
+        self.assertTrue(prices.attrs["entsoe_refresh_failed"])
+        self.assertIn("NoMessageError", prices.attrs["entsoe_refresh_error"])
+
+    def test_non_fundamental_does_not_mask_entsoe_refresh_exception(self):
+        class NoMessageError(Exception):
+            pass
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config = _config(
+                Path(temporary_directory),
+                point_variant="exaa_only",
+                sqra_variant="exaa_only",
+                market_data_retry_seconds=0,
+            )
+            with (
+                patch(
+                    "pipeline.operational.runner.load_or_fetch_frame",
+                    side_effect=NoMessageError(),
+                ),
+                patch("pipeline.operational.runner.time.sleep"),
+            ):
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "NoMessageError",
+                ):
+                    _load_entsoe_prices(
+                        config,
+                        start_date=date(2026, 9, 20),
+                        target_date=date(2026, 9, 25),
+                    )
+
     def test_fundamental_matrix_can_omit_the_load_block(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             config = _config(Path(temporary_directory))
@@ -1423,6 +1547,15 @@ class MarketAcquisitionPolicyTests(unittest.TestCase):
 
 
 class MarketCacheTests(unittest.TestCase):
+    def test_message_less_retry_error_includes_exception_type(self):
+        class NoMessageError(Exception):
+            pass
+
+        self.assertEqual(
+            _exception_summary(NoMessageError()),
+            "NoMessageError: NoMessageError()",
+        )
+
     def test_market_retry_waits_between_attempts(self):
         calls = []
 

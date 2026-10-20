@@ -74,6 +74,14 @@ class InsufficientPersistenceCalibrationError(RuntimeError):
     """Raised when too little EPEX history exists for fallback intervals."""
 
 
+def _exception_summary(exc: BaseException) -> str:
+    """Return a useful one-line description even for message-less errors."""
+    message = str(exc).strip()
+    if message:
+        return f"{type(exc).__name__}: {message}"
+    return f"{type(exc).__name__}: {exc!r}"
+
+
 class _Tee:
     def __init__(self, *streams) -> None:
         self.streams = streams
@@ -215,12 +223,17 @@ def _fetch_retry(
             if attempt == attempts:
                 break
             print(
-                f"{label} attempt {attempt} failed: {exc}; "
+                f"{label} attempt {attempt} failed: "
+                f"{_exception_summary(exc)}; "
                 f"retrying in {retry_seconds} seconds",
                 flush=True,
             )
             time.sleep(retry_seconds)
-    raise RuntimeError(f"{label} failed after {attempts} attempts: {last_error}")
+    assert last_error is not None
+    raise RuntimeError(
+        f"{label} failed after {attempts} attempts: "
+        f"{_exception_summary(last_error)}"
+    ) from last_error
 
 
 def _read_cache_only(
@@ -283,22 +296,70 @@ def _load_entsoe_prices(
     """Load realized EPEX prices through the day before the forecast target."""
     start = _timestamp(start_date, config.timezone)
     realized_end = _timestamp(target_date - timedelta(days=1), config.timezone)
-    return _fetch_retry(
-        "ENTSO-E prices",
-        lambda: load_or_fetch_frame(
-            config.entsoe_price_cache_dir / "prices_da.csv",
-            start,
-            realized_end,
-            partial(
-                fetch_prices,
-                api_key=config.entsoe_api_key,
-                target_tz=config.timezone,
+    cache_path = config.entsoe_price_cache_dir / "prices_da.csv"
+    try:
+        return _fetch_retry(
+            "ENTSO-E prices",
+            lambda: load_or_fetch_frame(
+                cache_path,
+                start,
+                realized_end,
+                partial(
+                    fetch_prices,
+                    api_key=config.entsoe_api_key,
+                    target_tz=config.timezone,
+                ),
+                timezone=config.timezone,
+                allow_incomplete=True,
             ),
-            timezone=config.timezone,
-            allow_incomplete=True,
-        ),
-        retry_seconds=config.market_data_retry_seconds,
-    )
+            retry_seconds=config.market_data_retry_seconds,
+        )
+    except RuntimeError as refresh_error:
+        # The Fundamental LEAR implementation can suppress unavailable EPEX
+        # lag blocks and calibrate on the remaining complete observations. A
+        # transient ENTSO-E/entsoe-py exception must therefore not make the
+        # entire operational run fail when a useful cache already exists.
+        if not _fundamental_dwd_fallback_enabled(config):
+            raise
+        try:
+            cached = _read_cache_only(
+                cache_path,
+                start_date,
+                target_date - timedelta(days=1),
+                config.timezone,
+                allow_incomplete=True,
+            )
+        except (OSError, ValueError, pd.errors.ParserError) as cache_error:
+            raise RuntimeError(
+                "ENTSO-E price refresh failed and no readable cached price "
+                f"history is available at {cache_path}: "
+                f"{_exception_summary(cache_error)}"
+            ) from refresh_error
+        if "price_da" not in cached.columns or not np.isfinite(
+            cached["price_da"].to_numpy(dtype=float)
+        ).any():
+            raise RuntimeError(
+                "ENTSO-E price refresh failed and the cached price history "
+                "contains no usable price observations."
+            ) from refresh_error
+
+        missing_mask = cached["price_da"].isna()
+        missing_days = sorted(
+            {
+                timestamp.date().isoformat()
+                for timestamp in cached.index[missing_mask]
+            }
+        )
+        print(
+            "WARNING: ENTSO-E price refresh remains unavailable after all "
+            "attempts; continuing the Fundamental pipeline with cached prices. "
+            "Unavailable delivery day(s): "
+            + (", ".join(missing_days) if missing_days else "none"),
+            flush=True,
+        )
+        cached.attrs["entsoe_refresh_failed"] = True
+        cached.attrs["entsoe_refresh_error"] = _exception_summary(refresh_error)
+        return cached
 
 
 def load_market_data(
@@ -1114,16 +1175,18 @@ def _execute_fundamental_persistence_fallback(
     config: OperationalConfig,
     targets: ArenaTargets,
     *,
-    dwd_error: BaseException,
+    failure_error: BaseException,
     submit: bool,
     force_submit: bool,
     prices: Optional[pd.DataFrame] = None,
+    failure_context: str = "target-day DWD data",
+    fallback_kind: str = "dwd",
 ) -> dict[str, object]:
     """Submit persistence fallbacks without updating any model history."""
     target_date = targets.target_date
-    failure_text = f"{type(dwd_error).__name__}: {dwd_error}"
+    failure_text = _exception_summary(failure_error)
     print(
-        "WARNING: target-day DWD data are unavailable for the Fundamental "
+        f"WARNING: {failure_context} prevented the normal Fundamental "
         f"pipeline ({failure_text}).",
         flush=True,
     )
@@ -1142,7 +1205,7 @@ def _execute_fundamental_persistence_fallback(
         target_date,
         lags=PERSISTENCE_FALLBACK_LAGS,
     )
-    point_model = f"persistence_d{lag}_dwd_fallback"
+    point_model = f"persistence_d{lag}_{fallback_kind}_fallback"
     print(
         f"Using operational point fallback {point_model}, sourced from "
         f"{source_date}.",
@@ -1163,7 +1226,9 @@ def _execute_fundamental_persistence_fallback(
                 quantiles=targets.quantile.quantiles,
             )
         )
-        quantile_model = f"pooled_residual_persistence_d{lag}_dwd_fallback"
+        quantile_model = (
+            f"pooled_residual_persistence_d{lag}_{fallback_kind}_fallback"
+        )
         quantile_status = "generated"
         print(
             f"Using operational quantile fallback {quantile_model}: "
@@ -1281,6 +1346,7 @@ def _execute_fundamental_persistence_fallback(
         "target_start": targets.target_start.isoformat(),
         "fallback": True,
         "fallback_reason": failure_text,
+        "fallback_context": failure_context,
         "point_model": point_model,
         "persistence_source_date": source_date.isoformat(),
         "quantile_model": quantile_model,
@@ -1339,7 +1405,7 @@ def execute_pipeline(
             return _execute_fundamental_persistence_fallback(
                 config,
                 targets,
-                dwd_error=exc,
+                failure_error=exc,
                 submit=submit,
                 force_submit=force_submit,
             )
@@ -1347,41 +1413,72 @@ def execute_pipeline(
     prices, exaa, load = load_market_data(
         config, start_date=market_start, target_date=target_date
     )
-    weather = {
-        clusters: _load_weather_features(
-            config, clusters, weather_start, target_date
-        )
-        for clusters in config.required_dwd_clusters
-    } if config.needs_dwd else {}
+    entsoe_refresh_error = prices.attrs.get("entsoe_refresh_error")
+    try:
+        weather = {
+            clusters: _load_weather_features(
+                config, clusters, weather_start, target_date
+            )
+            for clusters in config.required_dwd_clusters
+        } if config.needs_dwd else {}
 
-    forecasts: dict[str, pd.DataFrame] = {}
-    for run in runs:
-        days = _requested_days(
-            target_date,
-            config.sqra_train_days,
-            run.name in sqra_members,
-        ).tz_localize(config.timezone)
-        print(f"Point forecast {run.name}: {days[0].date()}..{days[-1].date()}")
-        forecasts[run.name] = run_point_model(
+        forecasts: dict[str, pd.DataFrame] = {}
+        for run in runs:
+            days = _requested_days(
+                target_date,
+                config.sqra_train_days,
+                run.name in sqra_members,
+            ).tz_localize(config.timezone)
+            print(f"Point forecast {run.name}: {days[0].date()}..{days[-1].date()}")
+            forecasts[run.name] = run_point_model(
+                config,
+                run,
+                requested_days=days,
+                prices=prices,
+                exaa=exaa,
+                load=load,
+                weather=weather,
+                force=force_forecast,
+            )
+
+        sqra_quantiles = tuple(sorted({*targets.quantile.quantiles, 0.5}))
+        sqra = run_sqra_model(
             config,
-            run,
-            requested_days=days,
-            prices=prices,
-            exaa=exaa,
-            load=load,
-            weather=weather,
-            force=force_forecast,
+            sqra_name,
+            target_date,
+            sqra_quantiles,
         )
-
-    sqra_quantiles = tuple(sorted({*targets.quantile.quantiles, 0.5}))
-    sqra = run_sqra_model(
-        config,
-        sqra_name,
-        target_date,
-        sqra_quantiles,
-    )
-    point_payload = build_sqra_median_point_payload(sqra, targets.point)
-    quantile_payload = build_quantile_payload(sqra, targets.quantile)
+        point_payload = build_sqra_median_point_payload(sqra, targets.point)
+        quantile_payload = build_quantile_payload(sqra, targets.quantile)
+    except (RuntimeError, ValueError) as normal_error:
+        if not (
+            entsoe_refresh_error
+            and _fundamental_dwd_fallback_enabled(config)
+        ):
+            raise
+        combined_error = RuntimeError(
+            "ENTSO-E price refresh failed ("
+            f"{entsoe_refresh_error}) and the normal Fundamental forecast "
+            f"could not proceed ({_exception_summary(normal_error)})"
+        )
+        try:
+            return _execute_fundamental_persistence_fallback(
+                config,
+                targets,
+                failure_error=combined_error,
+                submit=submit,
+                force_submit=force_submit,
+                prices=prices,
+                failure_context="unavailable ENTSO-E prices",
+                fallback_kind="entsoe",
+            )
+        except (RuntimeError, ValueError) as fallback_error:
+            raise RuntimeError(
+                "The normal Fundamental forecast failed after the ENTSO-E "
+                "refresh error, and neither the d-1 nor d-7 persistence "
+                "fallback could produce a complete submission: "
+                f"{_exception_summary(fallback_error)}"
+            ) from fallback_error
     submission_stream = _submission_stream(config)
     point_payload_path = _payload_path(
         config,
