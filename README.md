@@ -103,7 +103,10 @@ OPERATIONAL_OUTPUT_ROOT=output/operational
 `ENTSOE_API_KEY` is required for DE-LU prices, EXAA prices, and load forecasts.
 `ENERGY_ARENA_API_KEY` is required only when forecasts are submitted. Input,
 cache, result, and output paths can be absolute or relative to the repository
-root. 
+root. Energy Arena submissions use a 60-second timeout and three attempts by
+default. These can be changed with `ENERGY_ARENA_SUBMISSION_TIMEOUT_SECONDS`,
+`ENERGY_ARENA_SUBMISSION_MAX_ATTEMPTS`, and
+`ENERGY_ARENA_SUBMISSION_RETRY_SECONDS`.
 
 Before the first operational run, inspect the resolved configuration and live
 Energy Arena target:
@@ -260,6 +263,14 @@ The runner then:
 7. creates DST-aware Energy Arena payloads with 92, 96, or 100 physical MTUs;
    and
 8. submits the point and quantile payloads with `ENERGY_ARENA_API_KEY`.
+
+Point and quantile submissions are handled independently. Transient network
+timeouts, connection failures, rate limits, and server errors are retried with
+backoff. A final failure for one challenge does not prevent the other challenge
+from being attempted. Each challenge's stable `latest.json` receipt records the
+most recent confirmed success or final failed attempt; the command exits with a
+nonzero status if either challenge remains unsuccessful so an external scheduler
+can retry the run.
 
 If the target-day 06 UTC ICON-D2 data remain unavailable after the configured
 DWD download and verification attempts, the default Fundamental pipeline uses

@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import tempfile
+import time
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -290,24 +291,64 @@ def submit_payload(
     api_base: str,
     api_key: str,
     payload: dict[str, Any],
-    timeout: int = 30,
+    timeout: int = 60,
+    attempts: int = 3,
+    retry_seconds: int = 15,
 ) -> dict[str, Any]:
+    """Submit one payload, retrying only transient transport/server errors."""
     if not api_key:
         raise ValueError("An Energy Arena API key is required for submission.")
+    if timeout < 1:
+        raise ValueError("Energy Arena submission timeout must be at least 1 second.")
+    if attempts < 1:
+        raise ValueError("Energy Arena submission attempts must be at least 1.")
+    if retry_seconds < 0:
+        raise ValueError("Energy Arena retry delay must be at least 0 seconds.")
+
     url = f"{api_base}/api/v1/submissions"
-    try:
-        response = requests.post(
-            url,
-            headers={"X-API-Key": api_key},
-            json=payload,
-            timeout=timeout,
-        )
-        response.raise_for_status()
-        body = response.json()
-    except (requests.RequestException, ValueError) as exc:
-        detail = getattr(locals().get("response"), "text", "")
-        raise RuntimeError(f"Energy Arena submission failed: {exc}. {detail[:500]}") from exc
-    return body if isinstance(body, dict) else {"response": body}
+    challenge_id = str(payload.get("challenge_id", "unknown"))
+
+    for attempt in range(1, attempts + 1):
+        response: Optional[requests.Response] = None
+        try:
+            response = requests.post(
+                url,
+                headers={"X-API-Key": api_key},
+                json=payload,
+                timeout=timeout,
+            )
+            response.raise_for_status()
+            body = response.json()
+            return body if isinstance(body, dict) else {"response": body}
+        except (requests.RequestException, ValueError) as exc:
+            status_code = response.status_code if response is not None else None
+            transient = isinstance(
+                exc,
+                (requests.Timeout, requests.ConnectionError),
+            ) or (
+                isinstance(exc, requests.HTTPError)
+                and status_code is not None
+                and (status_code in {408, 425, 429} or status_code >= 500)
+            )
+            detail = response.text[:500] if response is not None else ""
+            error = f"{type(exc).__name__}: {exc}"
+            if transient and attempt < attempts:
+                delay = retry_seconds * attempt
+                print(
+                    f"Energy Arena challenge {challenge_id} submission attempt "
+                    f"{attempt}/{attempts} failed transiently: {error}; "
+                    f"retrying in {delay} seconds",
+                    flush=True,
+                )
+                time.sleep(delay)
+                continue
+            suffix = f" Response: {detail}" if detail else ""
+            raise RuntimeError(
+                f"Energy Arena challenge {challenge_id} submission failed on "
+                f"attempt {attempt}/{attempts}: {error}.{suffix}"
+            ) from exc
+
+    raise AssertionError("Energy Arena submission retry loop ended unexpectedly.")
 
 
 def submission_record_path(
@@ -317,8 +358,9 @@ def submission_record_path(
     target_start: datetime,
 ) -> Path:
     # Keep ``target_start`` in the interface for consistency with payload path
-    # construction. Receipts intentionally retain only the latest successful
-    # response for each model stream/challenge pair. Energy Arena itself uses
+    # construction. Receipts intentionally retain only the latest confirmed
+    # response or final failed attempt for each model stream/challenge pair.
+    # Energy Arena itself uses
     # the submission timestamp to distinguish information-cutoff tracks.
     del target_start
     return (
@@ -337,7 +379,10 @@ def already_submitted(record_path: Path, payload: dict[str, Any]) -> bool:
         record = json.loads(record_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return False
-    return record.get("status") == "success" and record.get("payload_hash") == payload_hash(payload)
+    return (
+        record.get("status") == "success"
+        and record.get("payload_hash") == payload_hash(payload)
+    )
 
 
 def submit_with_record(
@@ -347,10 +392,33 @@ def submit_with_record(
     payload: dict[str, Any],
     record_path: Path,
     force: bool = False,
+    timeout: int = 60,
+    attempts: int = 3,
+    retry_seconds: int = 15,
 ) -> dict[str, Any]:
     if already_submitted(record_path, payload) and not force:
         return {"status": "already_submitted", "record": str(record_path)}
-    response = submit_payload(api_base=api_base, api_key=api_key, payload=payload)
+    try:
+        response = submit_payload(
+            api_base=api_base,
+            api_key=api_key,
+            payload=payload,
+            timeout=timeout,
+            attempts=attempts,
+            retry_seconds=retry_seconds,
+        )
+    except (RuntimeError, ValueError) as exc:
+        atomic_write_json(
+            record_path,
+            {
+                "status": "failed",
+                "attempted_at": datetime.now().astimezone().isoformat(),
+                "payload_hash": payload_hash(payload),
+                "payload": payload,
+                "error": f"{type(exc).__name__}: {exc}",
+            },
+        )
+        raise
     record = {
         "status": "success",
         "submitted_at": datetime.now().astimezone().isoformat(),

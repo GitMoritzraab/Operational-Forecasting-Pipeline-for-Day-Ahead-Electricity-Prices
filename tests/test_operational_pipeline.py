@@ -7,11 +7,12 @@ import json
 import os
 from datetime import date, datetime
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
+import requests
 
 from market_cache import load_or_fetch_frame
 from experiment_manifest import get_sqra_run
@@ -26,6 +27,8 @@ from pipeline.operational.energy_arena import (
     build_sqra_median_point_payload,
     physical_mtu_numbers,
     resolve_targets,
+    submit_payload,
+    submit_with_record,
     submission_record_path,
 )
 from pipeline.operational.runner import (
@@ -35,6 +38,7 @@ from pipeline.operational.runner import (
     _fetch_retry,
     _load_entsoe_prices,
     _payload_path,
+    _submit_arena_payloads,
     _submission_stream,
     arena_lock_path,
     build_operational_persistence_fallback,
@@ -93,6 +97,9 @@ def _config(root: Path, **overrides) -> OperationalConfig:
         "arena_api_base_url": "https://api.energy-arena.org",
         "arena_point_challenge_id": "2",
         "arena_quantile_challenge_id": "8",
+        "arena_submission_timeout_seconds": 60,
+        "arena_submission_attempts": 3,
+        "arena_submission_retry_seconds": 15,
         "submit_to_arena": True,
         "point_variant": "fundamental",
         "point_clusters": 5,
@@ -481,6 +488,132 @@ class EnergyArenaPayloadTests(unittest.TestCase):
                 )["values"]
             ),
             100,
+        )
+
+    def test_transient_submission_timeout_is_retried_with_backoff(self):
+        response = Mock()
+        response.status_code = 201
+        response.text = ""
+        response.raise_for_status.return_value = None
+        response.json.return_value = {"status": "accepted"}
+        payload = {
+            "challenge_id": "2",
+            "target_start": "2026-10-21T00:00:00+02:00",
+            "values": [1.0],
+        }
+
+        with (
+            patch(
+                "pipeline.operational.energy_arena.requests.post",
+                side_effect=[requests.ReadTimeout("slow response"), response],
+            ) as post,
+            patch("pipeline.operational.energy_arena.time.sleep") as sleep,
+        ):
+            result = submit_payload(
+                api_base="https://api.energy-arena.org",
+                api_key="test-key",
+                payload=payload,
+                timeout=60,
+                attempts=3,
+                retry_seconds=15,
+            )
+
+        self.assertEqual(result, {"status": "accepted"})
+        self.assertEqual(post.call_count, 2)
+        sleep.assert_called_once_with(15)
+        self.assertEqual(post.call_args_list[0].kwargs["timeout"], 60)
+
+    def test_validation_http_error_is_not_retried(self):
+        response = Mock()
+        response.status_code = 400
+        response.text = "invalid payload"
+        response.raise_for_status.side_effect = requests.HTTPError(
+            "400 Client Error",
+            response=response,
+        )
+        payload = {
+            "challenge_id": "2",
+            "target_start": "2026-10-21T00:00:00+02:00",
+            "values": [1.0],
+        }
+
+        with (
+            patch(
+                "pipeline.operational.energy_arena.requests.post",
+                return_value=response,
+            ) as post,
+            patch("pipeline.operational.energy_arena.time.sleep") as sleep,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "invalid payload"):
+                submit_payload(
+                    api_base="https://api.energy-arena.org",
+                    api_key="test-key",
+                    payload=payload,
+                    attempts=3,
+                )
+
+        post.assert_called_once()
+        sleep.assert_not_called()
+
+    def test_failed_submission_replaces_receipt_with_failure_record(self):
+        payload = {
+            "challenge_id": "2",
+            "target_start": "2026-10-21T00:00:00+02:00",
+            "values": [1.0],
+        }
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            record_path = Path(temporary_directory) / "latest.json"
+            with patch(
+                "pipeline.operational.energy_arena.submit_payload",
+                side_effect=RuntimeError("timed out after retries"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "timed out"):
+                    submit_with_record(
+                        api_base="https://api.energy-arena.org",
+                        api_key="test-key",
+                        payload=payload,
+                        record_path=record_path,
+                    )
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(record["status"], "failed")
+        self.assertEqual(record["payload"], payload)
+        self.assertIn("timed out after retries", record["error"])
+
+    def test_point_failure_does_not_prevent_quantile_submission_attempt(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config = _config(Path(temporary_directory))
+            target = date(2099, 10, 21)
+            payloads = (
+                ("point", _challenge("point", target), {"challenge_id": "2"}),
+                (
+                    "quantile",
+                    _challenge("quantile", target),
+                    {"challenge_id": "8"},
+                ),
+            )
+            with patch(
+                "pipeline.operational.runner.submit_with_record",
+                side_effect=[
+                    RuntimeError("point timeout"),
+                    {"status": "accepted"},
+                ],
+            ) as submit:
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "Every challenge was attempted independently",
+                ):
+                    _submit_arena_payloads(
+                        config,
+                        "exaa_only",
+                        payloads,
+                        force_submit=False,
+                    )
+
+        self.assertEqual(submit.call_count, 2)
+        self.assertEqual(
+            submit.call_args_list[1].kwargs["payload"]["challenge_id"],
+            "8",
         )
 
 

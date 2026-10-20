@@ -53,7 +53,9 @@ from pipeline.dwd_history import consolidated_delivery_available
 from pipeline.operational.prepare_dwd import prepare_target_dwd
 from pipeline.operational.locking import interprocess_lock
 from pipeline.operational.energy_arena import (
+    ArenaChallenge,
     ArenaTargets,
+    already_submitted,
     atomic_write_json,
     build_point_payload,
     build_quantile_payload,
@@ -197,6 +199,113 @@ def _submission_stream(config: OperationalConfig) -> str:
         if config.point_variant == "fundamental"
         else config.point_variant
     )
+
+
+def _submit_arena_payloads(
+    config: OperationalConfig,
+    submission_stream: str,
+    payloads: Sequence[tuple[str, ArenaChallenge, dict]],
+    *,
+    force_submit: bool,
+    context: str = "",
+) -> dict[str, object]:
+    """Submit every challenge independently, then report any failures."""
+    submissions: dict[str, object] = {}
+    failures: dict[str, str] = {}
+    with interprocess_lock(
+        arena_lock_path(config),
+        timeout_seconds=15 * 60,
+        description="Energy Arena submission account",
+    ):
+        for label, challenge, payload in payloads:
+            display_label = " ".join(value for value in (label, context) if value)
+            record_path = submission_record_path(
+                config.output_root,
+                submission_stream,
+                challenge.challenge_id,
+                challenge.target_start,
+            )
+            if already_submitted(record_path, payload) and not force_submit:
+                submission_result = {
+                    "status": "already_submitted",
+                    "record": _display_path(config, record_path),
+                }
+                submissions[label] = submission_result
+                print(
+                    f"Energy Arena {display_label}: success: "
+                    f"{submission_result}",
+                    flush=True,
+                )
+                continue
+            now = datetime.now().astimezone(challenge.deadline.tzinfo)
+            if now > challenge.deadline:
+                error = (
+                    "submission deadline has passed: "
+                    f"{challenge.deadline.isoformat()}"
+                )
+                failures[label] = error
+                submissions[label] = {"status": "failed", "error": error}
+                print(
+                    f"Energy Arena {display_label}: failed: {error}",
+                    flush=True,
+                )
+                continue
+
+            print(
+                f"Energy Arena {display_label}: submitting challenge "
+                f"{challenge.challenge_id} with up to "
+                f"{config.arena_submission_attempts} attempt(s), "
+                f"timeout={config.arena_submission_timeout_seconds}s",
+                flush=True,
+            )
+            try:
+                submission_result = submit_with_record(
+                    api_base=config.arena_api_base_url,
+                    api_key=config.arena_api_key,
+                    payload=payload,
+                    record_path=record_path,
+                    force=force_submit,
+                    timeout=config.arena_submission_timeout_seconds,
+                    attempts=config.arena_submission_attempts,
+                    retry_seconds=config.arena_submission_retry_seconds,
+                )
+            except (RuntimeError, ValueError) as exc:
+                error = _exception_summary(exc)
+                failures[label] = error
+                submissions[label] = {
+                    "status": "failed",
+                    "error": error,
+                    "record": _display_path(config, record_path),
+                }
+                print(
+                    f"Energy Arena {display_label}: failed after retries: "
+                    f"{error}",
+                    flush=True,
+                )
+                continue
+
+            if "record" in submission_result:
+                submission_result = {
+                    **submission_result,
+                    "record": _display_path(
+                        config, Path(str(submission_result["record"]))
+                    ),
+                }
+            submissions[label] = submission_result
+            print(
+                f"Energy Arena {display_label}: success: {submission_result}",
+                flush=True,
+            )
+
+    if failures:
+        details = "; ".join(
+            f"{label}: {error}" for label, error in failures.items()
+        )
+        raise RuntimeError(
+            "One or more Energy Arena submissions failed after all configured "
+            f"attempts. Every challenge was attempted independently. {details}"
+        )
+    return submissions
 
 
 def pipeline_log_path(config: OperationalConfig) -> Path:
@@ -1287,49 +1396,22 @@ def _execute_fundamental_persistence_fallback(
 
     submissions: dict[str, object] = {}
     if submit:
-        with interprocess_lock(
-            arena_lock_path(config),
-            timeout_seconds=15 * 60,
-            description="Energy Arena submission account",
-        ):
-            now = datetime.now().astimezone(targets.point.deadline.tzinfo)
-            deadline = min(challenge.deadline for _, challenge, _ in payloads)
-            if now > deadline:
-                raise RuntimeError(
-                    f"Energy Arena fallback deadline has passed: {deadline.isoformat()}"
-                )
-            for label, challenge, payload in payloads:
-                record_path = submission_record_path(
-                    config.output_root,
-                    submission_stream,
-                    challenge.challenge_id,
-                    challenge.target_start,
-                )
-                submission_result = submit_with_record(
-                    api_base=config.arena_api_base_url,
-                    api_key=config.arena_api_key,
-                    payload=payload,
-                    record_path=record_path,
-                    force=force_submit,
-                )
-                if "record" in submission_result:
-                    submission_result = {
-                        **submission_result,
-                        "record": _display_path(
-                            config, Path(str(submission_result["record"]))
-                        ),
-                    }
-                submissions[label] = submission_result
-                print(f"Energy Arena {label} fallback: {submission_result}")
-            if quantile_payload is None:
-                submissions["quantile"] = {
-                    "status": "skipped",
-                    "reason": "insufficient persistence calibration history",
-                }
-                print(
-                    "Energy Arena quantile: skipped "
-                    "(insufficient persistence calibration history)"
-                )
+        submissions = _submit_arena_payloads(
+            config,
+            submission_stream,
+            payloads,
+            force_submit=force_submit,
+            context="fallback",
+        )
+        if quantile_payload is None:
+            submissions["quantile"] = {
+                "status": "skipped",
+                "reason": "insufficient persistence calibration history",
+            }
+            print(
+                "Energy Arena quantile: skipped "
+                "(insufficient persistence calibration history)"
+            )
     else:
         if quantile_payload is None:
             print(
@@ -1499,45 +1581,15 @@ def execute_pipeline(
 
     submissions: dict[str, object] = {}
     if submit:
-        # Model fitting may overlap across information-cutoff streams. Only
-        # the short write-to-one-account section is serialized.
-        with interprocess_lock(
-            arena_lock_path(config),
-            timeout_seconds=15 * 60,
-            description="Energy Arena submission account",
-        ):
-            now = datetime.now().astimezone(targets.point.deadline.tzinfo)
-            deadline = min(targets.point.deadline, targets.quantile.deadline)
-            if now > deadline:
-                raise RuntimeError(
-                    f"Energy Arena deadline has passed: {deadline.isoformat()}"
-                )
-            for label, challenge, payload in (
+        submissions = _submit_arena_payloads(
+            config,
+            submission_stream,
+            (
                 ("point", targets.point, point_payload),
                 ("quantile", targets.quantile, quantile_payload),
-            ):
-                record_path = submission_record_path(
-                    config.output_root,
-                    submission_stream,
-                    challenge.challenge_id,
-                    challenge.target_start,
-                )
-                submission_result = submit_with_record(
-                    api_base=config.arena_api_base_url,
-                    api_key=config.arena_api_key,
-                    payload=payload,
-                    record_path=record_path,
-                    force=force_submit,
-                )
-                if "record" in submission_result:
-                    submission_result = {
-                        **submission_result,
-                        "record": _display_path(
-                            config, Path(str(submission_result["record"]))
-                        ),
-                    }
-                submissions[label] = submission_result
-                print(f"Energy Arena {label}: {submissions[label]}")
+            ),
+            force_submit=force_submit,
+        )
     else:
         print("Submission disabled; validated payloads were saved locally.")
     return {

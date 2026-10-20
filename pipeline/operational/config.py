@@ -48,6 +48,9 @@ class OperationalConfig:
     arena_api_base_url: str
     arena_point_challenge_id: str
     arena_quantile_challenge_id: str
+    arena_submission_timeout_seconds: int
+    arena_submission_attempts: int
+    arena_submission_retry_seconds: int
     submit_to_arena: bool
     point_variant: str
     point_clusters: int
@@ -157,6 +160,27 @@ def load_operational_config(repo_root: Path | str | None = None) -> OperationalC
         raise ValueError(
             "FUNDAMENTAL_LOAD_DOWNLOAD_MAX_ATTEMPTS must be at least 1."
         )
+    arena_submission_timeout_seconds = env_int(
+        "ENERGY_ARENA_SUBMISSION_TIMEOUT_SECONDS", 60
+    )
+    if arena_submission_timeout_seconds < 1:
+        raise ValueError(
+            "ENERGY_ARENA_SUBMISSION_TIMEOUT_SECONDS must be at least 1."
+        )
+    arena_submission_attempts = env_int(
+        "ENERGY_ARENA_SUBMISSION_MAX_ATTEMPTS", 3
+    )
+    if arena_submission_attempts < 1:
+        raise ValueError(
+            "ENERGY_ARENA_SUBMISSION_MAX_ATTEMPTS must be at least 1."
+        )
+    arena_submission_retry_seconds = env_int(
+        "ENERGY_ARENA_SUBMISSION_RETRY_SECONDS", 15
+    )
+    if arena_submission_retry_seconds < 0:
+        raise ValueError(
+            "ENERGY_ARENA_SUBMISSION_RETRY_SECONDS must be at least 0."
+        )
 
     return OperationalConfig(
         repo_root=root,
@@ -172,6 +196,9 @@ def load_operational_config(repo_root: Path | str | None = None) -> OperationalC
         arena_quantile_challenge_id=os.getenv(
             "ENERGY_ARENA_QUANTILE_CHALLENGE_ID", "8"
         ).strip(),
+        arena_submission_timeout_seconds=arena_submission_timeout_seconds,
+        arena_submission_attempts=arena_submission_attempts,
+        arena_submission_retry_seconds=arena_submission_retry_seconds,
         submit_to_arena=env_bool("SUBMIT_TO_ENERGY_ARENA", True),
         point_variant=point_variant,
         point_clusters=point_clusters,
