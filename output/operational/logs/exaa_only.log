@@ -1,106 +1,56 @@
-started_at=2026-10-20T11:15:03.698094+02:00
+started_at=2026-10-21T11:15:03.963040+02:00
 command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline.py --exaa-only
-Target: 2026-10-21T00:00:00+02:00
+Target: 2026-10-22T00:00:00+02:00
 Submitted point forecast: SQRA exaa_only, q=0.500
 Reference LEAR point run: exaa_only_d364
 SQRA configuration: exaa_only
 Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
 Point runs: exaa_only_d56, exaa_only_d112, exaa_only_d364
-Updating prices_exaa.csv: 2026-10-21 through 2026-10-21
-Point forecast exaa_only_d56: 2026-08-22..2026-10-21
-  2026-10-21  LARS  12.6s
-Point forecast exaa_only_d112: 2026-08-22..2026-10-21
-  2026-10-21  LARS  24.7s
-Point forecast exaa_only_d364: 2026-08-22..2026-10-21
-  2026-10-21  LassoCV  12.9s
-2026-10-21
+Updating prices_exaa.csv: 2026-10-22 through 2026-10-22
+EXAA prices attempt 1 failed: NoMatchingDataError: NoMatchingDataError(); retrying in 300 seconds
+Updating prices_exaa.csv: 2026-10-22 through 2026-10-22
+EXAA prices attempt 2 failed: NoMatchingDataError: NoMatchingDataError(); retrying in 300 seconds
+Updating prices_exaa.csv: 2026-10-22 through 2026-10-22
+Point forecast exaa_only_d56: 2026-08-23..2026-10-22
+  2026-10-22  LARS  12.6s
+Point forecast exaa_only_d112: 2026-08-23..2026-10-22
+  2026-10-22  LARS  24.8s
+Point forecast exaa_only_d364: 2026-08-23..2026-10-22
+  2026-10-22  LassoCV  12.8s
+2026-10-22
 Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\2\latest.json
 Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\8\latest.json
-failed_at=2026-10-20T11:16:37.091177+02:00
-status=failed
-Traceback (most recent call last):
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Lib\site-packages\urllib3\connectionpool.py", line 534, in _make_request
-    response = conn.getresponse()
-               ^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Lib\site-packages\urllib3\connection.py", line 571, in getresponse
-    httplib_response = super().getresponse()
-                       ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python311\Lib\http\client.py", line 1374, in getresponse
-    response.begin()
-  File "C:\Program Files\Python311\Lib\http\client.py", line 318, in begin
-    version, status, reason = self._read_status()
-                              ^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python311\Lib\http\client.py", line 279, in _read_status
-    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python311\Lib\socket.py", line 706, in readinto
-    return self._sock.recv_into(b)
-           ^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python311\Lib\ssl.py", line 1278, in recv_into
-    return self.read(nbytes, buffer)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\Python311\Lib\ssl.py", line 1134, in read
-    return self._sslobj.read(len, buffer)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TimeoutError: The read operation timed out
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Lib\site-packages\requests\adapters.py", line 696, in send
-    resp = conn.urlopen(
-           ^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Lib\site-packages\urllib3\connectionpool.py", line 842, in urlopen
-    retries = retries.increment(
-              ^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Lib\site-packages\urllib3\util\retry.py", line 498, in increment
-    raise reraise(type(error), error, _stacktrace)
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Lib\site-packages\urllib3\util\util.py", line 39, in reraise
-    raise value
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Lib\site-packages\urllib3\connectionpool.py", line 788, in urlopen
-    response = self._make_request(
-               ^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Lib\site-packages\urllib3\connectionpool.py", line 536, in _make_request
-    self._raise_timeout(err=e, url=url, timeout_value=read_timeout)
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Lib\site-packages\urllib3\connectionpool.py", line 367, in _raise_timeout
-    raise ReadTimeoutError(
-urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='api.energy-arena.org', port=443): Read timed out. (read timeout=30)
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\energy_arena.py", line 299, in submit_payload
-    response = requests.post(
-               ^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Lib\site-packages\requests\api.py", line 134, in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Lib\site-packages\requests\api.py", line 71, in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Lib\site-packages\requests\sessions.py", line 651, in request
-    resp = self.send(prep, **send_kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Lib\site-packages\requests\sessions.py", line 784, in send
-    r = adapter.send(request, **kwargs)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Lib\site-packages\requests\adapters.py", line 742, in send
-    raise ReadTimeout(e, request=request)
-requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='api.energy-arena.org', port=443): Read timed out. (read timeout=30)
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 1702, in main
-    summary = execute_pipeline(
-              ^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 1525, in execute_pipeline
-    submission_result = submit_with_record(
-                        ^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\energy_arena.py", line 353, in submit_with_record
-    response = submit_payload(api_base=api_base, api_key=api_key, payload=payload)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\energy_arena.py", line 309, in submit_payload
-    raise RuntimeError(f"Energy Arena submission failed: {exc}. {detail[:500]}") from exc
-RuntimeError: Energy Arena submission failed: HTTPSConnectionPool(host='api.energy-arena.org', port=443): Read timed out. (read timeout=30). 
+Energy Arena point: submitting challenge 2 with up to 3 attempt(s), timeout=60s
+Energy Arena point: success: {'submission_id': 104842, 'submission_ids': [104842], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-21T09:26:27.240064Z'}
+Energy Arena quantile: submitting challenge 8 with up to 3 attempt(s), timeout=60s
+Energy Arena quantile: success: {'submission_id': 104843, 'submission_ids': [104843], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-21T09:26:27.342705Z'}
+{
+  "target_start": "2026-10-22T00:00:00+02:00",
+  "point_model": "exaa_only:q0.500",
+  "reference_lear_model": "exaa_only_d364",
+  "sqra_model": "exaa_only",
+  "point_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\2\\latest.json",
+  "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\8\\latest.json",
+  "submissions": {
+    "point": {
+      "submission_id": 104842,
+      "submission_ids": [
+        104842
+      ],
+      "status": "pending",
+      "message": "Submission stored and will be evaluated once realized prices are available.",
+      "submitted_at": "2026-10-21T09:26:27.240064Z"
+    },
+    "quantile": {
+      "submission_id": 104843,
+      "submission_ids": [
+        104843
+      ],
+      "status": "pending",
+      "message": "Submission stored and will be evaluated once realized prices are available.",
+      "submitted_at": "2026-10-21T09:26:27.342705Z"
+    }
+  }
+}
+completed_at=2026-10-21T11:26:27.369434+02:00
+status=success
