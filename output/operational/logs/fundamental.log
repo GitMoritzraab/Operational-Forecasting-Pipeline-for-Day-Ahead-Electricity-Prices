@@ -1,29 +1,29 @@
-started_at=2026-10-21T10:30:04.350086+02:00
+started_at=2026-10-22T10:30:04.127317+02:00
 command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline.py --fundamental
-Target: 2026-10-22T00:00:00+02:00
+Target: 2026-10-23T00:00:00+02:00
 Submitted point forecast: SQRA dwd_fundamental, q=0.500
 Reference LEAR point run: dwd_d56_c5_fundamental
 SQRA configuration: dwd_fundamental
 Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
 Point runs: dwd_d56_c1_fundamental, dwd_d56_c5_fundamental, dwd_d56_c25_fundamental
-DWD histories ready for delivery 2026-10-22: C=1, C=5, C=25
-Updating prices_da.csv: 2026-10-21 through 2026-10-21
-Updating load_forecast.csv: 2026-10-22 through 2026-10-22
-Point forecast dwd_d56_c1_fundamental: 2026-08-23..2026-10-22
-  2026-10-22  LARS  41.0s
-Point forecast dwd_d56_c5_fundamental: 2026-08-23..2026-10-22
-  2026-10-22  LARS  111.5s
-Point forecast dwd_d56_c25_fundamental: 2026-08-23..2026-10-22
-  2026-10-22  LARS  497.2s
-2026-10-22
+DWD histories ready for delivery 2026-10-23: C=1, C=5, C=25
+Updating prices_da.csv: 2026-10-22 through 2026-10-22
+Updating load_forecast.csv: 2026-10-23 through 2026-10-23
+Point forecast dwd_d56_c1_fundamental: 2026-08-24..2026-10-23
+  2026-10-23  LARS  40.5s
+Point forecast dwd_d56_c5_fundamental: 2026-08-24..2026-10-23
+  2026-10-23  LARS  107.8s
+Point forecast dwd_d56_c25_fundamental: 2026-08-24..2026-10-23
+  2026-10-23  LARS  493.4s
+2026-10-23
 Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\2\latest.json
 Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\8\latest.json
 Energy Arena point: submitting challenge 2 with up to 3 attempt(s), timeout=60s
-Energy Arena point: success: {'submission_id': 104800, 'submission_ids': [104800], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-21T08:41:25.303473Z'}
+Energy Arena point: success: {'submission_id': 105521, 'submission_ids': [105521], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-22T08:41:15.415196Z'}
 Energy Arena quantile: submitting challenge 8 with up to 3 attempt(s), timeout=60s
-Energy Arena quantile: success: {'submission_id': 104801, 'submission_ids': [104801], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-21T08:41:25.556772Z'}
+Energy Arena quantile: success: {'submission_id': 105522, 'submission_ids': [105522], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-22T08:41:15.620150Z'}
 {
-  "target_start": "2026-10-22T00:00:00+02:00",
+  "target_start": "2026-10-23T00:00:00+02:00",
   "point_model": "dwd_fundamental:q0.500",
   "reference_lear_model": "dwd_d56_c5_fundamental",
   "sqra_model": "dwd_fundamental",
@@ -31,24 +31,24 @@ Energy Arena quantile: success: {'submission_id': 104801, 'submission_ids': [104
   "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\default\\8\\latest.json",
   "submissions": {
     "point": {
-      "submission_id": 104800,
+      "submission_id": 105521,
       "submission_ids": [
-        104800
+        105521
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-10-21T08:41:25.303473Z"
+      "submitted_at": "2026-10-22T08:41:15.415196Z"
     },
     "quantile": {
-      "submission_id": 104801,
+      "submission_id": 105522,
       "submission_ids": [
-        104801
+        105522
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-10-21T08:41:25.556772Z"
+      "submitted_at": "2026-10-22T08:41:15.620150Z"
     }
   }
 }
-completed_at=2026-10-21T10:41:25.580266+02:00
+completed_at=2026-10-22T10:41:15.640673+02:00
 status=success
