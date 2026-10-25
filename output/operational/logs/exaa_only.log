@@ -1,59 +1,57 @@
-started_at=2026-10-24T11:15:04.080640+02:00
+started_at=2026-10-25T11:15:04.302680+01:00
 command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline.py --exaa-only
-Target: 2026-10-25T00:00:00+02:00
+Target: 2026-10-26T00:00:00+01:00
 Submitted point forecast: SQRA exaa_only, q=0.500
 Reference LEAR point run: exaa_only_d364
 SQRA configuration: exaa_only
 Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
 Point runs: exaa_only_d56, exaa_only_d112, exaa_only_d364
-Updating prices_exaa.csv: 2026-10-25 through 2026-10-25
-WARNING: prices_exaa.csv remains incomplete for 4 timestamp(s) on delivery day(s): 2026-10-25
-EXAA prices attempt 1 failed: ValueError: EXAA prices is unavailable or incomplete for target delivery day 2026-10-25.; retrying in 300 seconds
-Updating prices_exaa.csv: 2026-10-25 through 2026-10-25
-WARNING: prices_exaa.csv remains incomplete for 4 timestamp(s) on delivery day(s): 2026-10-25
-EXAA prices attempt 2 failed: ValueError: EXAA prices is unavailable or incomplete for target delivery day 2026-10-25.; retrying in 300 seconds
-Updating prices_exaa.csv: 2026-10-25 through 2026-10-25
-WARNING: prices_exaa.csv remains incomplete for 4 timestamp(s) on delivery day(s): 2026-10-25
-EXAA prices attempt 3 failed: ValueError: EXAA prices is unavailable or incomplete for target delivery day 2026-10-25.; retrying in 300 seconds
-Updating prices_exaa.csv: 2026-10-25 through 2026-10-25
-WARNING: prices_exaa.csv remains incomplete for 4 timestamp(s) on delivery day(s): 2026-10-25
-EXAA prices attempt 4 failed: ValueError: EXAA prices is unavailable or incomplete for target delivery day 2026-10-25.; retrying in 300 seconds
-Updating prices_exaa.csv: 2026-10-25 through 2026-10-25
-WARNING: prices_exaa.csv remains incomplete for 4 timestamp(s) on delivery day(s): 2026-10-25
-EXAA prices attempt 5 failed: ValueError: EXAA prices is unavailable or incomplete for target delivery day 2026-10-25.; retrying in 300 seconds
-Updating prices_exaa.csv: 2026-10-25 through 2026-10-25
-WARNING: prices_exaa.csv remains incomplete for 4 timestamp(s) on delivery day(s): 2026-10-25
-EXAA prices attempt 6 failed: ValueError: EXAA prices is unavailable or incomplete for target delivery day 2026-10-25.; retrying in 300 seconds
-Updating prices_exaa.csv: 2026-10-25 through 2026-10-25
-WARNING: prices_exaa.csv remains incomplete for 4 timestamp(s) on delivery day(s): 2026-10-25
-EXAA prices attempt 7 failed: ValueError: EXAA prices is unavailable or incomplete for target delivery day 2026-10-25.; retrying in 300 seconds
-Updating prices_exaa.csv: 2026-10-25 through 2026-10-25
-WARNING: prices_exaa.csv remains incomplete for 4 timestamp(s) on delivery day(s): 2026-10-25
-failed_at=2026-10-24T11:50:48.720645+02:00
-status=failed
-Traceback (most recent call last):
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 329, in _fetch_retry
-    return operation()
-           ^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 526, in load_exaa_with_complete_target
-    return _require_complete_delivery_day(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 392, in _require_complete_delivery_day
-    raise ValueError(
-ValueError: EXAA prices is unavailable or incomplete for target delivery day 2026-10-25.
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 1754, in main
-    summary = execute_pipeline(
-              ^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 1495, in execute_pipeline
-    prices, exaa, load = load_market_data(
-                         ^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 530, in load_market_data
-    exaa = _fetch_retry(
-           ^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 342, in _fetch_retry
-    raise RuntimeError(
-RuntimeError: EXAA prices failed after 8 attempts: ValueError: EXAA prices is unavailable or incomplete for target delivery day 2026-10-25.
+Updating prices_da.csv: 2026-10-25 through 2026-10-25
+WARNING: prices_da.csv remains incomplete for 4 timestamp(s) on delivery day(s): 2026-10-25
+Updating prices_exaa.csv: 2026-10-25 through 2026-10-26
+Point forecast exaa_only_d56: 2026-08-27..2026-10-26
+  2026-10-25  LARS  12.8s
+  2026-10-26  LARS  12.5s
+Point forecast exaa_only_d112: 2026-08-27..2026-10-26
+  2026-10-25  LARS  25.5s
+  2026-10-26  LARS  25.0s
+Point forecast exaa_only_d364: 2026-08-27..2026-10-26
+  2026-10-25  LassoCV  13.0s
+  2026-10-26  LassoCV  12.8s
+2026-10-26
+Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\2\latest.json
+Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\8\latest.json
+Energy Arena point: submitting challenge 2 with up to 3 attempt(s), timeout=60s
+Energy Arena point: success: {'submission_id': 107702, 'submission_ids': [107702], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-25T10:17:16.530372Z'}
+Energy Arena quantile: submitting challenge 8 with up to 3 attempt(s), timeout=60s
+Energy Arena quantile: success: {'submission_id': 107703, 'submission_ids': [107703], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-10-25T10:17:16.630203Z'}
+{
+  "target_start": "2026-10-26T00:00:00+01:00",
+  "point_model": "exaa_only:q0.500",
+  "reference_lear_model": "exaa_only_d364",
+  "sqra_model": "exaa_only",
+  "point_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\2\\latest.json",
+  "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\8\\latest.json",
+  "submissions": {
+    "point": {
+      "submission_id": 107702,
+      "submission_ids": [
+        107702
+      ],
+      "status": "pending",
+      "message": "Submission stored and will be evaluated once realized prices are available.",
+      "submitted_at": "2026-10-25T10:17:16.530372Z"
+    },
+    "quantile": {
+      "submission_id": 107703,
+      "submission_ids": [
+        107703
+      ],
+      "status": "pending",
+      "message": "Submission stored and will be evaluated once realized prices are available.",
+      "submitted_at": "2026-10-25T10:17:16.630203Z"
+    }
+  }
+}
+completed_at=2026-10-25T11:17:16.655127+01:00
+status=success
