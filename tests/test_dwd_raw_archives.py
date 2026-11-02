@@ -30,14 +30,19 @@ def _make_archive(
     include_native: bool = True,
     *,
     daily_container: bool = False,
+    timestamped_container: bool = False,
 ) -> Path:
-    if daily_container:
+    if timestamped_container:
+        path = dwd_raw.timestamped_run_dir(root, ISSUE_DAY, RUN_HOUR) / (
+            dwd_raw.variable_archive_filename(RUN_HOUR, VARIABLE)
+        )
+    elif daily_container:
         path = dwd_raw.legacy_day_dir(root, ISSUE_DAY) / (
             dwd_raw.variable_archive_filename(RUN_HOUR, VARIABLE)
         )
     else:
         path = dwd_raw.variable_archive_path(root, ISSUE_DAY, RUN_HOUR, VARIABLE)
-    path.parent.mkdir(parents=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
     with ZipFile(path, "w", compression=ZIP_STORED) as archive:
         for lead in range(49):
             archive.writestr(
@@ -103,6 +108,69 @@ class DwdRawArchiveTests(unittest.TestCase):
                     variables=[VARIABLE],
                 ),
                 archive.parent,
+            )
+
+    def test_timestamped_zip_run_is_discovered_verified_and_materialized(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            archive = _make_archive(root, timestamped_container=True)
+            archive.with_suffix(".zip.json").write_text("{}", encoding="utf-8")
+
+            location = dwd_raw.locate_raw_run(root, ISSUE_DAY, RUN_HOUR)
+            self.assertIsNotNone(location)
+            self.assertEqual(location.kind, "zip")
+            self.assertEqual(location.path, root / "20260915_06")
+            self.assertTrue(dwd_raw.raw_run_available(root, ISSUE_DAY, "06"))
+            self.assertFalse(dwd_raw.raw_run_available(root, ISSUE_DAY, "09"))
+            self.assertEqual(dwd_raw.discover_issue_dates(root), [ISSUE_DAY])
+            self.assertEqual(dwd_raw.available_run_hours(root, ISSUE_DAY), [RUN_HOUR])
+            self.assertEqual(
+                dwd_raw.available_variables(
+                    root, ISSUE_DAY, RUN_HOUR, dwd.DWD_MODEL_VARIABLES
+                ),
+                [VARIABLE],
+            )
+            self.assertEqual(
+                dwd.verify_available_run(
+                    root, ISSUE_DAY, RUN_HOUR, variables=[VARIABLE]
+                ),
+                archive.parent,
+            )
+            with dwd_raw.materialize_raw_run(
+                root, ISSUE_DAY, RUN_HOUR, [VARIABLE]
+            ) as run_dir:
+                files = list((run_dir / VARIABLE).glob("*.grib2.bz2"))
+                self.assertEqual(len(files), 49)
+                self.assertTrue(all("regular-lat-lon" in path.name for path in files))
+
+            # Preprocessing extracts to a temporary directory and keeps the source ZIP.
+            self.assertTrue(archive.is_file())
+
+    def test_date_and_run_discovery_handles_mixed_layouts_and_ignores_invalid_names(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            _make_archive(root)
+            _make_archive(root, timestamped_container=True)
+            second_date = date(2026, 10, 30)
+            for hour in ("06", "09"):
+                container = root / f"20261030_{hour}"
+                container.mkdir()
+                (container / f"icon-d2__{hour}__u_10m.zip").touch()
+            for name in ("20261301_06", "20261030_24", "20261030_06_backup"):
+                (root / name).mkdir()
+            # Ignore sidecars and a ZIP whose hour disagrees with its folder.
+            wrong_run = root / "20261030_18"
+            wrong_run.mkdir()
+            (wrong_run / "icon-d2__18__u_10m.zip.json").write_text("{}")
+            (wrong_run / "icon-d2__06__u_10m.zip").touch()
+            (root / "20261031_06").touch()
+
+            self.assertEqual(dwd_raw.discover_issue_dates(root), [ISSUE_DAY, second_date])
+            self.assertEqual(dwd_raw.available_run_hours(root, second_date), ["06", "09"])
+            self.assertIsNone(dwd_raw.locate_raw_run(root, second_date, "18"))
+            self.assertEqual(
+                dwd_raw.locate_raw_run(root, ISSUE_DAY, RUN_HOUR).path,
+                dwd_raw.archived_day_dir(root, ISSUE_DAY),
             )
 
     def test_materialization_rejects_incomplete_archives(self):

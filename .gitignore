@@ -29,6 +29,7 @@ env/
 # Local operational automation and runtime locks
 /update_github.py
 /output/**/*.lock
+backfill_dwd_data.ps1
 
 # OS
 .DS_Store

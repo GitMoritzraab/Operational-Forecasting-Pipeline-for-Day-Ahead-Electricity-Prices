@@ -213,6 +213,13 @@ Prepare tomorrow's weather data independently before model execution:
 python .\prepare_dwd_data.py
 ```
 
+Existing raw archives can use `dwd_icon_daily_YYYYMMDD`,
+`dwd_icon_archived_YYYYMMDD`, or `YYYYMMDD_HH` containers. ZIP sets inside these
+containers use `icon-d2__HH__VARIABLE.zip`; accompanying `.zip.json` files are
+ignored. For example, `20261029_06/icon-d2__06__u_10m.zip` supplies weather for
+delivery day 30 October 2026. The existing nested directory layout remains
+supported as well.
+
 The preparation script performs the following steps:
 
 1. download or locate only the four required ICON-D2 variables for the 06 UTC

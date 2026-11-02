@@ -16,6 +16,7 @@ from zipfile import ZipFile
 REGULAR_GRID_TOKEN = "regular-lat-lon"
 ARCHIVED_PREFIX = "dwd_icon_archived_"
 LEGACY_PREFIX = "dwd_icon_daily_"
+TIMESTAMPED_RUN_PATTERN = re.compile(r"^(\d{8})_([01]\d|2[0-3])$")
 EXPECTED_LEADS = frozenset(range(49))
 
 
@@ -37,6 +38,30 @@ def legacy_run_dir(root: Path, issue_date: date, run_hour: str) -> Path:
 
 def archived_day_dir(root: Path, issue_date: date) -> Path:
     return root / f"{ARCHIVED_PREFIX}{issue_date:%Y%m%d}"
+
+
+def timestamped_run_dir(root: Path, issue_date: date, run_hour: str) -> Path:
+    return root / f"{issue_date:%Y%m%d}_{run_hour}"
+
+
+def _timestamped_runs(
+    root: Path, issue_date: date | None = None
+) -> Iterator[tuple[date, str, Path]]:
+    """Discover valid YYYYMMDD_HH folders without treating JSON files as runs."""
+    pattern = (
+        f"{issue_date:%Y%m%d}_[0-9][0-9]"
+        if issue_date is not None
+        else "[0-9]*_[0-9][0-9]"
+    )
+    for path in root.glob(pattern):
+        match = TIMESTAMPED_RUN_PATTERN.fullmatch(path.name)
+        if match is None or not path.is_dir():
+            continue
+        try:
+            folder_date = datetime.strptime(match.group(1), "%Y%m%d").date()
+        except ValueError:
+            continue
+        yield folder_date, match.group(2), path
 
 
 def variable_archive_path(
@@ -102,10 +127,11 @@ def zip_regular_members(
 
 
 def locate_raw_run(root: Path, issue_date: date, run_hour: str) -> RawRunLocation | None:
-    """Prefer a ZIP set, accepting both observed top-level folder names."""
+    """Locate ZIP sets in daily, archived, or YYYYMMDD_HH containers."""
     for archive_dir in (
         archived_day_dir(root, issue_date),
         legacy_day_dir(root, issue_date),
+        timestamped_run_dir(root, issue_date, run_hour),
     ):
         if archive_dir.is_dir() and any(
             archive_dir.glob(f"icon-d2__{run_hour}__*.zip")
@@ -146,7 +172,7 @@ def available_variables(
 
 
 def discover_issue_dates(root: Path) -> list[date]:
-    """Discover issue dates from both supported top-level folder names."""
+    """Discover issue dates from all supported top-level folder names."""
     dates: set[date] = set()
     for prefix in (LEGACY_PREFIX, ARCHIVED_PREFIX):
         for path in root.glob(f"{prefix}*"):
@@ -157,6 +183,7 @@ def discover_issue_dates(root: Path) -> list[date]:
                 dates.add(datetime.strptime(token, "%Y%m%d").date())
             except ValueError:
                 continue
+    dates.update(issue_date for issue_date, _, _ in _timestamped_runs(root))
     return sorted(dates)
 
 
@@ -180,6 +207,9 @@ def available_run_hours(root: Path, issue_date: date) -> list[str]:
             match = pattern.match(path.name)
             if match:
                 hours.add(match.group(1))
+    for _, run_hour, archive_dir in _timestamped_runs(root, issue_date):
+        if any(archive_dir.glob(f"icon-d2__{run_hour}__*.zip")):
+            hours.add(run_hour)
     return sorted(hours)
 
 
