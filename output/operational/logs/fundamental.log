@@ -1,41 +1,29 @@
-started_at=2026-11-02T10:41:05.171090+01:00
+started_at=2026-11-03T10:30:14.810446+01:00
 command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline.py --fundamental
-Target: 2026-11-03T00:00:00+01:00
+Target: 2026-11-04T00:00:00+01:00
 Submitted point forecast: SQRA dwd_fundamental, q=0.500
 Reference LEAR point run: dwd_d56_c5_fundamental
 SQRA configuration: dwd_fundamental
 Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
 Point runs: dwd_d56_c1_fundamental, dwd_d56_c5_fundamental, dwd_d56_c25_fundamental
-DWD histories ready for delivery 2026-11-03: C=1, C=5, C=25
-Updating prices_da.csv: 2026-10-29 through 2026-11-02
-Updating load_forecast.csv: 2026-10-30 through 2026-11-03
-Point forecast dwd_d56_c1_fundamental: 2026-09-04..2026-11-03
-  2026-10-30  LARS  41.9s
-  2026-10-31  LARS  40.9s
-  2026-11-01  LARS  40.5s
-  2026-11-02  LARS  41.6s
-  2026-11-03  LARS  42.5s
-Point forecast dwd_d56_c5_fundamental: 2026-09-04..2026-11-03
-  2026-10-30  LARS  115.6s
-  2026-10-31  LARS  110.5s
-  2026-11-01  LARS  111.2s
-  2026-11-02  LARS  112.5s
-  2026-11-03  LARS  112.6s
-Point forecast dwd_d56_c25_fundamental: 2026-09-04..2026-11-03
-  2026-10-30  LARS  489.4s
-  2026-10-31  LARS  489.3s
-  2026-11-01  LARS  516.1s
-  2026-11-02  LARS  509.3s
-  2026-11-03  LARS  504.0s
-2026-11-03
+DWD histories ready for delivery 2026-11-04: C=1, C=5, C=25
+Updating prices_da.csv: 2026-11-03 through 2026-11-03
+Updating load_forecast.csv: 2026-11-04 through 2026-11-04
+Point forecast dwd_d56_c1_fundamental: 2026-09-05..2026-11-04
+  2026-11-04  LARS  64.3s
+Point forecast dwd_d56_c5_fundamental: 2026-09-05..2026-11-04
+  2026-11-04  LARS  153.2s
+Point forecast dwd_d56_c25_fundamental: 2026-09-05..2026-11-04
+  2026-11-04  LARS  691.8s
+2026-11-04
 Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\2\latest.json
 Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\default\8\latest.json
 Energy Arena point: submitting challenge 2 with up to 3 attempt(s), timeout=60s
-Energy Arena point: success: {'submission_id': 114455, 'submission_ids': [114455], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-11-02T10:36:13.702925Z'}
+Energy Arena point: success: {'submission_id': 115259, 'submission_ids': [115259], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-11-03T09:46:03.454924Z'}
 Energy Arena quantile: submitting challenge 8 with up to 3 attempt(s), timeout=60s
-Energy Arena quantile: success: {'submission_id': 114456, 'submission_ids': [114456], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-11-02T10:36:13.814760Z'}
+Energy Arena quantile: success: {'submission_id': 115260, 'submission_ids': [115260], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-11-03T09:46:03.572036Z'}
 {
-  "target_start": "2026-11-03T00:00:00+01:00",
+  "target_start": "2026-11-04T00:00:00+01:00",
   "point_model": "dwd_fundamental:q0.500",
   "reference_lear_model": "dwd_d56_c5_fundamental",
   "sqra_model": "dwd_fundamental",
@@ -43,24 +31,24 @@ Energy Arena quantile: success: {'submission_id': 114456, 'submission_ids': [114
   "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\default\\8\\latest.json",
   "submissions": {
     "point": {
-      "submission_id": 114455,
+      "submission_id": 115259,
       "submission_ids": [
-        114455
+        115259
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-11-02T10:36:13.702925Z"
+      "submitted_at": "2026-11-03T09:46:03.454924Z"
     },
     "quantile": {
-      "submission_id": 114456,
+      "submission_id": 115260,
       "submission_ids": [
-        114456
+        115260
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-11-02T10:36:13.814760Z"
+      "submitted_at": "2026-11-03T09:46:03.572036Z"
     }
   }
 }
-completed_at=2026-11-02T11:36:13.844086+01:00
+completed_at=2026-11-03T10:46:03.581370+01:00
 status=success

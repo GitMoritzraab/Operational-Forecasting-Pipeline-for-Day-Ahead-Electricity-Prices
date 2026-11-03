@@ -1,39 +1,27 @@
-started_at=2026-11-02T11:15:03.932499+01:00
+started_at=2026-11-03T11:15:04.257980+01:00
 command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline.py --exaa-only
-Target: 2026-11-03T00:00:00+01:00
+Target: 2026-11-04T00:00:00+01:00
 Submitted point forecast: SQRA exaa_only, q=0.500
 Reference LEAR point run: exaa_only_d364
 SQRA configuration: exaa_only
 Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
 Point runs: exaa_only_d56, exaa_only_d112, exaa_only_d364
-Updating prices_exaa.csv: 2026-10-30 through 2026-11-03
-Point forecast exaa_only_d56: 2026-09-04..2026-11-03
-  2026-10-30  LARS  15.7s
-  2026-10-31  LARS  15.5s
-  2026-11-01  LARS  15.2s
-  2026-11-02  LARS  15.5s
-  2026-11-03  LARS  16.5s
-Point forecast exaa_only_d112: 2026-09-04..2026-11-03
-  2026-10-30  LARS  29.7s
-  2026-10-31  LARS  30.3s
-  2026-11-01  LARS  30.7s
-  2026-11-02  LARS  31.1s
-  2026-11-03  LARS  30.0s
-Point forecast exaa_only_d364: 2026-09-04..2026-11-03
-  2026-10-30  LassoCV  15.8s
-  2026-10-31  LassoCV  16.1s
-  2026-11-01  LassoCV  15.9s
-  2026-11-02  LassoCV  16.0s
-  2026-11-03  LassoCV  16.1s
-2026-11-03
+Updating prices_exaa.csv: 2026-11-04 through 2026-11-04
+Point forecast exaa_only_d56: 2026-09-05..2026-11-04
+  2026-11-04  LARS  19.8s
+Point forecast exaa_only_d112: 2026-09-05..2026-11-04
+  2026-11-04  LARS  37.5s
+Point forecast exaa_only_d364: 2026-09-05..2026-11-04
+  2026-11-04  LassoCV  19.5s
+2026-11-04
 Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\2\latest.json
 Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\8\latest.json
 Energy Arena point: submitting challenge 2 with up to 3 attempt(s), timeout=60s
-Energy Arena point: success: {'submission_id': 114455, 'submission_ids': [114455], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-11-02T10:20:37.366723Z'}
+Energy Arena point: success: {'submission_id': 115301, 'submission_ids': [115301], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-11-03T10:16:45.172658Z'}
 Energy Arena quantile: submitting challenge 8 with up to 3 attempt(s), timeout=60s
-Energy Arena quantile: success: {'submission_id': 114456, 'submission_ids': [114456], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-11-02T10:20:37.483429Z'}
+Energy Arena quantile: success: {'submission_id': 115302, 'submission_ids': [115302], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-11-03T10:16:45.314126Z'}
 {
-  "target_start": "2026-11-03T00:00:00+01:00",
+  "target_start": "2026-11-04T00:00:00+01:00",
   "point_model": "exaa_only:q0.500",
   "reference_lear_model": "exaa_only_d364",
   "sqra_model": "exaa_only",
@@ -41,24 +29,24 @@ Energy Arena quantile: success: {'submission_id': 114456, 'submission_ids': [114
   "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\8\\latest.json",
   "submissions": {
     "point": {
-      "submission_id": 114455,
+      "submission_id": 115301,
       "submission_ids": [
-        114455
+        115301
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-11-02T10:20:37.366723Z"
+      "submitted_at": "2026-11-03T10:16:45.172658Z"
     },
     "quantile": {
-      "submission_id": 114456,
+      "submission_id": 115302,
       "submission_ids": [
-        114456
+        115302
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-11-02T10:20:37.483429Z"
+      "submitted_at": "2026-11-03T10:16:45.314126Z"
     }
   }
 }
-completed_at=2026-11-02T11:20:37.502996+01:00
+completed_at=2026-11-03T11:16:45.318278+01:00
 status=success
