@@ -1,29 +1,27 @@
-started_at=2026-11-05T11:15:04.909566+01:00
+started_at=2026-11-06T11:15:05.110164+01:00
 command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline.py --exaa-only
-Target: 2026-11-06T00:00:00+01:00
+Target: 2026-11-07T00:00:00+01:00
 Submitted point forecast: SQRA exaa_only, q=0.500
 Reference LEAR point run: exaa_only_d364
 SQRA configuration: exaa_only
 Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
 Point runs: exaa_only_d56, exaa_only_d112, exaa_only_d364
-Updating prices_exaa.csv: 2026-11-06 through 2026-11-06
-EXAA prices attempt 1 failed: HTTPError: 599 Server Error: status code 599 for url: https://web-api.tp.entsoe.eu/api?documentType=A44&in_Domain=10Y1001A1001A82H&out_Domain=10Y1001A1001A82H&offset=0&contract_MarketAgreement.type=A01&classificationSequence_AttributeInstanceComponent.position=2&securityToken=27e78a77-d183-4d42-a5cd-5a5024ae95be&periodStart=202611052300&periodEnd=202611062300; retrying in 300 seconds
-Updating prices_exaa.csv: 2026-11-06 through 2026-11-06
-Point forecast exaa_only_d56: 2026-09-07..2026-11-06
-  2026-11-06  LARS  17.4s
-Point forecast exaa_only_d112: 2026-09-07..2026-11-06
-  2026-11-06  LARS  30.3s
-Point forecast exaa_only_d364: 2026-09-07..2026-11-06
-  2026-11-06  LassoCV  16.6s
-2026-11-06
+Updating prices_exaa.csv: 2026-11-07 through 2026-11-07
+Point forecast exaa_only_d56: 2026-09-08..2026-11-07
+  2026-11-07  LARS  15.9s
+Point forecast exaa_only_d112: 2026-09-08..2026-11-07
+  2026-11-07  LARS  29.2s
+Point forecast exaa_only_d364: 2026-09-08..2026-11-07
+  2026-11-07  LassoCV  19.2s
+2026-11-07
 Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\2\latest.json
 Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\8\latest.json
 Energy Arena point: submitting challenge 2 with up to 3 attempt(s), timeout=60s
-Energy Arena point: success: {'submission_id': 120623, 'submission_ids': [120623], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-11-05T10:21:43.751242Z'}
+Energy Arena point: success: {'submission_id': 173216, 'submission_ids': [173216], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-11-06T10:16:34.262422Z'}
 Energy Arena quantile: submitting challenge 8 with up to 3 attempt(s), timeout=60s
-Energy Arena quantile: success: {'submission_id': 120624, 'submission_ids': [120624], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-11-05T10:21:43.849531Z'}
+Energy Arena quantile: success: {'submission_id': 173217, 'submission_ids': [173217], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-11-06T10:16:34.354336Z'}
 {
-  "target_start": "2026-11-06T00:00:00+01:00",
+  "target_start": "2026-11-07T00:00:00+01:00",
   "point_model": "exaa_only:q0.500",
   "reference_lear_model": "exaa_only_d364",
   "sqra_model": "exaa_only",
@@ -31,24 +29,24 @@ Energy Arena quantile: success: {'submission_id': 120624, 'submission_ids': [120
   "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\8\\latest.json",
   "submissions": {
     "point": {
-      "submission_id": 120623,
+      "submission_id": 173216,
       "submission_ids": [
-        120623
+        173216
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-11-05T10:21:43.751242Z"
+      "submitted_at": "2026-11-06T10:16:34.262422Z"
     },
     "quantile": {
-      "submission_id": 120624,
+      "submission_id": 173217,
       "submission_ids": [
-        120624
+        173217
       ],
       "status": "pending",
       "message": "Submission stored and will be evaluated once realized prices are available.",
-      "submitted_at": "2026-11-05T10:21:43.849531Z"
+      "submitted_at": "2026-11-06T10:16:34.354336Z"
     }
   }
 }
-completed_at=2026-11-05T11:21:43.839105+01:00
+completed_at=2026-11-06T11:16:34.371344+01:00
 status=success
