@@ -1,53 +1,60 @@
-started_at=2026-11-21T11:15:03.575503+01:00
+started_at=2026-11-22T11:15:03.521562+01:00
 command=C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Scripts\python.exe run_pipeline.py --exaa-only
-Target: 2026-11-22T00:00:00+01:00
+Target: 2026-11-23T00:00:00+01:00
 Submitted point forecast: SQRA exaa_only, q=0.500
 Reference LEAR point run: exaa_only_d364
 SQRA configuration: exaa_only
 Arena quantiles: 0.025, 0.25, 0.5, 0.75, 0.975
 Point runs: exaa_only_d56, exaa_only_d112, exaa_only_d364
 Updating prices_da.csv: 2026-11-20 through 2026-11-21
-ENTSO-E prices attempt 1 failed: NoMatchingDataError: NoMatchingDataError(); retrying in 300 seconds
-Updating prices_da.csv: 2026-11-20 through 2026-11-21
-ENTSO-E prices attempt 2 failed: NoMatchingDataError: NoMatchingDataError(); retrying in 300 seconds
-Updating prices_da.csv: 2026-11-20 through 2026-11-21
-failed_at=2026-11-21T11:26:36.925885+01:00
-status=failed
-Traceback (most recent call last):
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 329, in _fetch_retry
-    return operation()
-           ^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 412, in <lambda>
-    lambda: load_or_fetch_frame(
-            ^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\market_cache.py", line 45, in load_or_fetch_frame
-    return _load_or_fetch_frame_unlocked(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\market_cache.py", line 119, in _load_or_fetch_frame_unlocked
-    fresh = fetcher(fetch_start, fetch_end)
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\lear\lear_model.py", line 61, in fetch_prices
-    raw_series = client.query_day_ahead_prices(
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\forecast\Lib\site-packages\entsoe\entsoe.py", line 1307, in query_day_ahead_prices
-    raise NoMatchingDataError
-entsoe.exceptions.NoMatchingDataError
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 1754, in main
-    summary = execute_pipeline(
-              ^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 1495, in execute_pipeline
-    prices, exaa, load = load_market_data(
-                         ^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 485, in load_market_data
-    prices = _load_entsoe_prices(
-             ^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 410, in _load_entsoe_prices
-    return _fetch_retry(
-           ^^^^^^^^^^^^^
-  File "C:\Users\mg8285\Documents\DA_Price_Forecasting_Pipeline_DE_LU-main\pipeline\operational\runner.py", line 342, in _fetch_retry
-    raise RuntimeError(
-RuntimeError: ENTSO-E prices failed after 3 attempts: NoMatchingDataError: NoMatchingDataError()
+WARNING: prices_da.csv remains incomplete for 192 timestamp(s) on delivery day(s): 2026-11-20, 2026-11-21
+Updating prices_exaa.csv: 2026-11-21 through 2026-11-23
+Point forecast exaa_only_d56: 2026-09-24..2026-11-23
+  2026-11-21  LARS  12.6s
+  2026-11-22  LARS  12.1s
+  2026-11-23  LARS  12.4s
+Point forecast exaa_only_d112: 2026-09-24..2026-11-23
+  2026-11-21  LARS  25.1s
+  2026-11-22  LARS  24.6s
+  2026-11-23  LARS  24.7s
+Point forecast exaa_only_d364: 2026-09-24..2026-11-23
+  2026-11-21  LassoCV  12.9s
+  2026-11-22  LassoCV  12.9s
+  2026-11-23  LassoCV  13.0s
+2026-11-23
+Point payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\2\latest.json
+Quantile payload: DA_Price_Forecasting_Pipeline_DE_LU-main\output\operational\payloads\exaa_only\8\latest.json
+Energy Arena point: submitting challenge 2 with up to 3 attempt(s), timeout=60s
+Energy Arena point: success: {'submission_id': 210902, 'submission_ids': [210902], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-11-22T10:18:02.235739Z'}
+Energy Arena quantile: submitting challenge 8 with up to 3 attempt(s), timeout=60s
+Energy Arena quantile: success: {'submission_id': 210903, 'submission_ids': [210903], 'status': 'pending', 'message': 'Submission stored and will be evaluated once realized prices are available.', 'submitted_at': '2026-11-22T10:18:02.315416Z'}
+{
+  "target_start": "2026-11-23T00:00:00+01:00",
+  "point_model": "exaa_only:q0.500",
+  "reference_lear_model": "exaa_only_d364",
+  "sqra_model": "exaa_only",
+  "point_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\2\\latest.json",
+  "quantile_payload": "DA_Price_Forecasting_Pipeline_DE_LU-main\\output\\operational\\payloads\\exaa_only\\8\\latest.json",
+  "submissions": {
+    "point": {
+      "submission_id": 210902,
+      "submission_ids": [
+        210902
+      ],
+      "status": "pending",
+      "message": "Submission stored and will be evaluated once realized prices are available.",
+      "submitted_at": "2026-11-22T10:18:02.235739Z"
+    },
+    "quantile": {
+      "submission_id": 210903,
+      "submission_ids": [
+        210903
+      ],
+      "status": "pending",
+      "message": "Submission stored and will be evaluated once realized prices are available.",
+      "submitted_at": "2026-11-22T10:18:02.315416Z"
+    }
+  }
+}
+completed_at=2026-11-22T11:18:02.333938+01:00
+status=success
