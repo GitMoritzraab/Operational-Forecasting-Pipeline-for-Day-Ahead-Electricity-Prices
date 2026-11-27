@@ -131,3 +131,4 @@ forecast_day,train_days,use_vst,use_lars,runtime_seconds
 2026-11-25,56,True,True,493.5703388000839
 2026-11-26,56,True,True,664.3727473998442
 2026-11-27,56,True,True,731.3273197000381
+2026-11-28,56,True,True,838.0202688002028
